@@ -1,5 +1,8 @@
 # MCP Station
 
+[![npm](https://img.shields.io/npm/v/dsh-mcp-station)](https://www.npmjs.com/package/dsh-mcp-station)
+[![license](https://img.shields.io/npm/l/dsh-mcp-station)](LICENSE)
+
 > DSH 的 MCP 应用商店：精选目录、一键安装、连通性检测、浏览器自动化预设。
 
 ![应用商店](docs/screenshots/store.png)

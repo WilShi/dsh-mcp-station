@@ -1,5 +1,8 @@
 # MCP Station — MARKET
 
+npm: https://www.npmjs.com/package/dsh-mcp-station
+GitHub: https://github.com/WilShi/dsh-mcp-station
+
 ## 一句话
 
 DSH 的 MCP 应用商店：精选目录、一键安装、连通性检测、浏览器预设。

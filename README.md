@@ -1,5 +1,8 @@
 # MCP Station
 
+[![npm](https://img.shields.io/npm/v/dsh-mcp-station)](https://www.npmjs.com/package/dsh-mcp-station)
+[![license](https://img.shields.io/npm/l/dsh-mcp-station)](LICENSE)
+
 > The MCP app store for DeepSeek Harness: curated catalog, one-click install, health checks and browser presets.
 
 ![Store](docs/screenshots/store.png)
