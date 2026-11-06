@@ -1,0 +1,8 @@
+node_modules
+lib/
+.tmp/
+*.tgz
+e2e/home/
+e2e/screenshots/
+e2e/*.log
+e2e/npm-cache/

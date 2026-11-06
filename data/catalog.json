@@ -1,0 +1,552 @@
+{
+  "version": 1,
+  "updated": "2026-11-06",
+  "presets": [
+    {
+      "id": "playwright",
+      "serverName": "playwright",
+      "displayName": {
+        "zh": "Playwright 浏览器",
+        "en": "Playwright Browser"
+      },
+      "tagline": {
+        "zh": "让 Agent 打开网页、点按钮、填表单、截图",
+        "en": "Let the agent open pages, click, fill forms and take screenshots"
+      },
+      "description": {
+        "zh": "Microsoft 官方 Playwright MCP（0.0.84）。基于无障碍树操作真实浏览器，稳定、省 token，支持导航、点击、填表、上传、截图、网络与控制台。MCP Station 自动使用本机 Chrome（--browser chrome），避免 Playwright 自带 Chromium 版本缺失导致的启动失败。默认会把浏览器 profile 持久化到本机缓存目录，登录态可跨会话保留。",
+        "en": "Microsoft's official Playwright MCP (0.0.84). Drives a real browser through the accessibility tree: navigate, click, fill forms, upload, screenshot, network and console. MCP Station uses the local Chrome (--browser chrome) so missing bundled Chromium revisions cannot break startup. The browser profile is persisted under the local cache by default, so sign-ins survive across sessions."
+      },
+      "category": "browser",
+      "transport": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@latest",
+        "--browser",
+        "chrome",
+        "--timeout-action",
+        "15000"
+      ],
+      "requires": {
+        "chrome": true,
+        "node": true
+      },
+      "risk": {
+        "level": "medium",
+        "reasons": [
+          {
+            "zh": "可读取并操作你已登录的网页内容",
+            "en": "Can read and operate pages you are logged in to"
+          },
+          {
+            "zh": "可执行页面脚本、上传与下载文件",
+            "en": "Can evaluate page scripts and upload/download files"
+          },
+          {
+            "zh": "默认持久化浏览器 profile（含登录态）",
+            "en": "Persists the browser profile (including sign-ins) by default"
+          }
+        ]
+      },
+      "docs": "https://github.com/microsoft/playwright-mcp",
+      "tags": [
+        "browser",
+        "automation",
+        "playwright"
+      ],
+      "smoke": {
+        "tool": "browser_navigate",
+        "args": {
+          "url": "https://example.com"
+        },
+        "expectContains": "Example Domain"
+      },
+      "note": {
+        "zh": "默认有头模式，能看到浏览器窗口；--headless 无头、--isolated 使用内存 profile。实测工具名与参数有效，example.com 导航因本机验证沙箱无法启动 Chrome 沙箱而未完成（见 docs/presets.md）。",
+        "en": "Headed by default so you can watch; use --headless for headless mode and --isolated for an in-memory profile. Tool names and flags verified; the example.com navigate smoke could not complete in the verification sandbox because Chrome's own sandbox cannot start (see docs/presets.md)."
+      },
+      "env": {
+        "npm_config_cache": "{{dshHome}}/mcp-station/npm-cache"
+      }
+    },
+    {
+      "id": "chrome-devtools",
+      "serverName": "chrome-devtools",
+      "displayName": {
+        "zh": "Chrome DevTools",
+        "en": "Chrome DevTools"
+      },
+      "tagline": {
+        "zh": "前端调试、性能 Trace、网络与控制台",
+        "en": "Frontend debugging, performance traces, network and console"
+      },
+      "description": {
+        "zh": "Google 官方 Chrome DevTools MCP（1.12.0），提供 32 个工具。适合调试前端、抓网络请求、看控制台错误、跑性能 Trace。默认使用本机 Chrome，并已用 --no-usage-statistics、--no-performance-crux 关闭 Google 的使用统计与 CrUX 数据上报。",
+        "en": "Google's official Chrome DevTools MCP (1.12.0) with 32 tools for frontend debugging, network inspection, console errors and performance traces. Uses the local Chrome; --no-usage-statistics and --no-performance-crux opt out of Google usage statistics and CrUX uploads."
+      },
+      "category": "browser",
+      "transport": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "chrome-devtools-mcp@latest",
+        "--no-usage-statistics",
+        "--no-performance-crux"
+      ],
+      "requires": {
+        "chrome": true,
+        "node": true
+      },
+      "risk": {
+        "level": "medium",
+        "reasons": [
+          {
+            "zh": "可读取页面内容、网络请求与控制台输出",
+            "en": "Can read page content, network requests and console output"
+          },
+          {
+            "zh": "可修改页面状态并采集运行时数据",
+            "en": "Can modify page state and collect runtime data"
+          }
+        ]
+      },
+      "docs": "https://github.com/ChromeDevTools/chrome-devtools-mcp",
+      "tags": [
+        "devtools",
+        "debug",
+        "performance"
+      ],
+      "note": {
+        "zh": "1.12 起页面级工具（navigate_page、take_snapshot 等）需要 pageId，先用 list_pages/new_page 获取；默认 profile 保存在 ~/.cache/chrome-devtools-mcp。实测 tools/list 返回 32 个工具，navigate_page 缺 pageId 会被拒绝（符合预期）。",
+        "en": "Since 1.12, page-scoped tools (navigate_page, take_snapshot, ...) require a pageId; get one with list_pages/new_page. The default profile lives in ~/.cache/chrome-devtools-mcp. Verified: tools/list returns 32 tools; navigate_page without pageId is rejected as expected."
+      },
+      "env": {
+        "npm_config_cache": "{{dshHome}}/mcp-station/npm-cache"
+      }
+    },
+    {
+      "id": "filesystem",
+      "serverName": "filesystem",
+      "displayName": {
+        "zh": "文件系统",
+        "en": "Filesystem"
+      },
+      "tagline": {
+        "zh": "让 Agent 读写指定目录里的文件",
+        "en": "Let the agent read and write files in a chosen directory"
+      },
+      "description": {
+        "zh": "MCP 官方 Filesystem server（2.2.0），提供 16 个工具：读、写、编辑、复制、移动、搜索、列目录与文件信息。把指定目录暴露给 Agent；默认根目录为当前 DSH 工作区，建议只授权项目目录，不要直接授权整个用户目录。",
+        "en": "The official MCP Filesystem server (2.2.0) with 16 tools: read, write, edit, copy, move, search, list and inspect files. Exposes one or more directories to the agent. Defaults to the current DSH workspace; grant a project directory, never your whole home directory."
+      },
+      "category": "data",
+      "transport": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "{{workspace}}"
+      ],
+      "inputs": [
+        {
+          "key": "workspace",
+          "label": {
+            "zh": "允许访问的目录",
+            "en": "Directory to expose"
+          },
+          "description": {
+            "zh": "只给需要的项目目录；不要用 ~ 或 /",
+            "en": "Only the project directory needed; avoid ~ or /"
+          },
+          "kind": "path",
+          "required": true,
+          "default": "{{workspace}}"
+        }
+      ],
+      "requires": {
+        "node": true
+      },
+      "risk": {
+        "level": "medium",
+        "reasons": [
+          {
+            "zh": "可读写授权目录中的文件",
+            "en": "Can read and write files under the granted directory"
+          },
+          {
+            "zh": "可删除、移动与复制文件",
+            "en": "Can delete, move and copy files"
+          },
+          {
+            "zh": "授权范围过大时风险显著上升",
+            "en": "Risk grows sharply if the granted root is too broad"
+          }
+        ]
+      },
+      "docs": "https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem",
+      "tags": [
+        "files",
+        "filesystem"
+      ],
+      "smoke": {
+        "tool": "list_allowed_directories",
+        "expectContains": "Allowed directories"
+      },
+      "note": {
+        "zh": "2.2.0 声明 Node.js ≥ 24（Node 22 会打印 EBADENGINE 告警，但 2026-11-06 在 Node 22.22.3 实测可用）。只读场景可加 --read-only 参数（目录后面）。",
+        "en": "2.2.0 declares Node.js >= 24 (Node 22 logs an EBADENGINE warning but worked on Node 22.22.3 in the 2026-11-06 run). For read-only use, add --read-only to the arguments."
+      },
+      "env": {
+        "npm_config_cache": "{{dshHome}}/mcp-station/npm-cache"
+      }
+    },
+    {
+      "id": "memory",
+      "serverName": "memory",
+      "displayName": {
+        "zh": "知识图谱记忆",
+        "en": "Knowledge Graph Memory"
+      },
+      "tagline": {
+        "zh": "跨会话保存实体、关系与观察",
+        "en": "Persist entities, relations and observations across sessions"
+      },
+      "description": {
+        "zh": "MCP 官方 Memory server（2.1.0），提供 9 个工具：用本地知识图谱记住实体、关系与观察，适合跨会话的项目上下文。默认写入 DSH Home 下的 mcp-station-memory.json。",
+        "en": "The official MCP Memory server (2.1.0) with 9 tools: a local knowledge graph of entities, relations and observations for cross-session context. Defaults to mcp-station-memory.json under DSH Home."
+      },
+      "category": "memory",
+      "transport": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-memory"
+      ],
+      "env": {
+        "MEMORY_FILE_PATH": "{{memoryFile}}",
+        "npm_config_cache": "{{dshHome}}/mcp-station/npm-cache"
+      },
+      "inputs": [
+        {
+          "key": "memoryFile",
+          "label": {
+            "zh": "记忆文件路径",
+            "en": "Memory file path"
+          },
+          "description": {
+            "zh": "JSONL 文件（每行一个 JSON 对象），不存在会自动创建；父目录必须已存在",
+            "en": "JSONL file (one JSON object per line), created automatically; its parent directory must already exist"
+          },
+          "kind": "path",
+          "required": false,
+          "default": "{{dshHome}}/mcp-station-memory.json"
+        }
+      ],
+      "requires": {
+        "node": true
+      },
+      "risk": {
+        "level": "low",
+        "reasons": [
+          {
+            "zh": "只读写本地一个记忆文件",
+            "en": "Reads and writes one local memory file"
+          }
+        ]
+      },
+      "docs": "https://github.com/modelcontextprotocol/servers/tree/main/src/memory",
+      "tags": [
+        "memory",
+        "knowledge-graph"
+      ],
+      "smoke": {
+        "tool": "read_graph",
+        "expectContains": "entities"
+      },
+      "note": {
+        "zh": "文件实际格式是 JSONL（扩展名可随意）；2.1.0 不会创建父目录，父目录不存在时写入报 ENOENT。2.1.0 声明 Node.js ≥ 24，Node 22 会告警但实测可用。",
+        "en": "The on-disk format is JSONL regardless of extension; 2.1.0 does not create parent directories and fails with ENOENT if missing. 2.1.0 declares Node.js >= 24 (Node 22 warns but worked in the 2026-11-06 run)."
+      }
+    },
+    {
+      "id": "github",
+      "serverName": "github",
+      "displayName": {
+        "zh": "GitHub",
+        "en": "GitHub"
+      },
+      "tagline": {
+        "zh": "读仓库、Issue、PR；按 token 权限操作",
+        "en": "Read repos, issues and PRs; act within token scope"
+      },
+      "description": {
+        "zh": "MCP 官方 GitHub server（npm 包已归档，版本 2025.4.8，提供 26 个工具）。需要环境变量 GITHUB_PERSONAL_ACCESS_TOKEN（不会写进 profile 配置文件）；未配置时只能匿名调用公开 API。建议用只读或最小权限的 fine-grained token；上游已停止维护，官方替代见 note。",
+        "en": "The official MCP GitHub server (npm package archived, version 2025.4.8, 26 tools). Requires GITHUB_PERSONAL_ACCESS_TOKEN in the environment (never written to the profile patch); without it only anonymous public API calls work. Use a read-only or least-privilege fine-grained token; upstream is archived, see note for the maintained alternative."
+      },
+      "category": "dev",
+      "transport": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "env:GITHUB_PERSONAL_ACCESS_TOKEN",
+        "npm_config_cache": "{{dshHome}}/mcp-station/npm-cache"
+      },
+      "requires": {
+        "node": true,
+        "apiKey": true
+      },
+      "risk": {
+        "level": "high",
+        "reasons": [
+          {
+            "zh": "token 权限范围内的仓库可读，甚至可写",
+            "en": "Repos within the token scope may be readable or writable"
+          },
+          {
+            "zh": "可能接触私有代码与 Issue 内容",
+            "en": "May access private code and issue content"
+          },
+          {
+            "zh": "npm 包已归档、不再维护，无安全保证",
+            "en": "Archived npm package, unmaintained with no security guarantees"
+          }
+        ]
+      },
+      "docs": "https://github.com/github/github-mcp-server",
+      "tags": [
+        "github",
+        "git",
+        "issues"
+      ],
+      "note": {
+        "zh": "上游 npm 包已归档（2025.4.8）。官方推荐远程 MCP https://api.githubcopilot.com/mcp/（需要 Authorization 头，当前 catalog schema 不支持 headers）或 Docker 版 ghcr.io/github/github-mcp-server。注意：server 读取的是 GITHUB_PERSONAL_ACCESS_TOKEN；catalog 默认注入 env:GITHUB_PERSONAL_ACCESS_TOKEN。不配置时工具仍可用，但只以匿名身份访问公开数据。",
+        "en": "The npm package is archived (2025.4.8). GitHub recommends the remote MCP at https://api.githubcopilot.com/mcp/ (needs an Authorization header, which the current catalog schema cannot express) or the Docker image ghcr.io/github/github-mcp-server. Note: the server reads GITHUB_PERSONAL_ACCESS_TOKEN; the catalog maps it from the same-named host env var. Without it the tools still work, but only anonymously against public data."
+      }
+    },
+    {
+      "id": "context7",
+      "serverName": "context7",
+      "displayName": {
+        "zh": "Context7 文档",
+        "en": "Context7 Docs"
+      },
+      "tagline": {
+        "zh": "按库名取最新版官方文档与示例",
+        "en": "Fetch up-to-date library docs and examples"
+      },
+      "description": {
+        "zh": "Context7（4.5.1）把常用开源库的最新文档注入上下文，减少模型凭记忆编 API。工具为 resolve-library-id 与 query-docs；无需 API key（有速率限制），可选 CONTEXT7_API_KEY 或 --api-key 提升额度。",
+        "en": "Context7 (4.5.1) injects up-to-date documentation for popular open-source libraries. Tools: resolve-library-id and query-docs. No API key required (rate limited); an optional CONTEXT7_API_KEY or --api-key raises limits."
+      },
+      "category": "dev",
+      "transport": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp"
+      ],
+      "requires": {
+        "node": true
+      },
+      "risk": {
+        "level": "low",
+        "reasons": [
+          {
+            "zh": "会把你查询的库名发到 Context7 服务",
+            "en": "Sends the library names you query to the Context7 service"
+          }
+        ]
+      },
+      "docs": "https://github.com/upstash/context7",
+      "tags": [
+        "docs",
+        "library"
+      ],
+      "note": {
+        "zh": "实测 resolve-library-id 需要同时传 libraryName 与 query，未带 key 也能返回结果；query-docs 用上一步拿到的 /org/project 形式 ID。",
+        "en": "Verified resolve-library-id requires both libraryName and query; it returns results without a key. query-docs takes the /org/project ID returned by the first call."
+      },
+      "env": {
+        "npm_config_cache": "{{dshHome}}/mcp-station/npm-cache"
+      }
+    },
+    {
+      "id": "tavily",
+      "serverName": "tavily",
+      "displayName": {
+        "zh": "Tavily 搜索",
+        "en": "Tavily Search"
+      },
+      "tagline": {
+        "zh": "为 Agent 优化的联网搜索 API",
+        "en": "Web search API optimized for agents"
+      },
+      "description": {
+        "zh": "Tavily 远程 MCP（Streamable HTTP，server 4.1.5）：联网搜索、提取网页、爬站与站点地图，工具为 tavily_search、tavily_extract、tavily_crawl、tavily_map、tavily_research。需要 Tavily API key；key 会出现在远程 URL 中，请勿在共享机器上使用。",
+        "en": "Tavily remote MCP (Streamable HTTP, server 4.1.5): web search, page extraction, crawling and site maps with tavily_search, tavily_extract, tavily_crawl, tavily_map and tavily_research. Requires a Tavily API key; the key appears in the remote URL, so avoid shared machines."
+      },
+      "category": "search",
+      "transport": "streamable-http",
+      "url": "https://mcp.tavily.com/mcp/?tavilyApiKey={{TAVILY_API_KEY}}",
+      "inputs": [
+        {
+          "key": "TAVILY_API_KEY",
+          "label": {
+            "zh": "Tavily API Key",
+            "en": "Tavily API Key"
+          },
+          "description": {
+            "zh": "从 tavily.com 获取；会随 URL 写入本机 profile 配置",
+            "en": "Get one at tavily.com; stored in the local profile patch inside the URL"
+          },
+          "kind": "secret",
+          "required": true
+        }
+      ],
+      "requires": {
+        "apiKey": true
+      },
+      "risk": {
+        "level": "medium",
+        "reasons": [
+          {
+            "zh": "查询内容会发送到 Tavily 云端",
+            "en": "Queries are sent to Tavily's cloud"
+          },
+          {
+            "zh": "API key 会写入本机配置文件",
+            "en": "The API key is written into the local profile patch"
+          }
+        ]
+      },
+      "docs": "https://docs.tavily.com/documentation/mcp",
+      "tags": [
+        "search",
+        "web"
+      ],
+      "note": {
+        "zh": "端点与官方文档一致：无 key 时 initialize 返回 401，带 key 时 initialize 返回 200（实测用占位 key 验证了协议与工具列表；实际搜索调用需要真实 key）。",
+        "en": "Endpoint matches the official docs: initialize returns 401 without a key and 200 with one (protocol and tool list verified with a placeholder key; real searches need a real key)."
+      }
+    },
+    {
+      "id": "sequential-thinking",
+      "serverName": "sequential-thinking",
+      "displayName": {
+        "zh": "顺序思考",
+        "en": "Sequential Thinking"
+      },
+      "tagline": {
+        "zh": "把复杂问题拆成可回溯的思考步骤",
+        "en": "Break complex problems into revisable thinking steps"
+      },
+      "description": {
+        "zh": "MCP 官方 Sequential Thinking server（2.1.1），提供 sequentialthinking 工具，让 Agent 逐步拆解问题、回溯与分支。纯本地运行，不联网、不改文件，适合规划、排查与方案对比。",
+        "en": "The official MCP Sequential Thinking server (2.1.1). One sequentialthinking tool lets the agent plan step by step, revise and branch. Runs locally with no network or file writes; useful for planning, debugging and comparing options."
+      },
+      "category": "productivity",
+      "transport": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ],
+      "requires": {
+        "node": true
+      },
+      "risk": {
+        "level": "low",
+        "reasons": [
+          {
+            "zh": "只在内存中记录思考步骤，不访问网络或文件",
+            "en": "Keeps thinking steps in memory; no network or file access"
+          }
+        ]
+      },
+      "docs": "https://github.com/modelcontextprotocol/servers/tree/main/src/sequentialthinking",
+      "tags": [
+        "reasoning",
+        "planning"
+      ],
+      "smoke": {
+        "tool": "sequentialthinking",
+        "args": {
+          "thought": "MCP Station smoke test",
+          "nextThoughtNeeded": false,
+          "thoughtNumber": 1,
+          "totalThoughts": 1
+        },
+        "expectContains": "thoughtNumber"
+      },
+      "note": {
+        "zh": "2.1.1 声明 Node.js ≥ 24；Node 22 会告警但实测可用。若上次安装的是旧版 server-sequential-thinking，参数名可能不同，升级即可。",
+        "en": "2.1.1 declares Node.js >= 24; Node 22 warns but works in practice. Older server-sequential-thinking installs may use different argument names; upgrade to match."
+      },
+      "env": {
+        "npm_config_cache": "{{dshHome}}/mcp-station/npm-cache"
+      }
+    },
+    {
+      "id": "everything",
+      "serverName": "everything",
+      "displayName": {
+        "zh": "Everything 参考服",
+        "en": "Everything Reference"
+      },
+      "tagline": {
+        "zh": "用参考服务器验证 MCP 客户端能力",
+        "en": "Prove MCP client behavior with a reference server"
+      },
+      "description": {
+        "zh": "MCP 官方 Everything 参考服务器（2.2.1），覆盖工具、资源、提示词、日志、进度与结构化输出，共 16 个示例工具，用于验证 MCP Station 的连通性、工具列表与结果渲染，不是日常生产工具。",
+        "en": "The official MCP Everything reference server (2.2.1): tools, resources, prompts, logging, progress and structured output across 16 demo tools. Use it to validate MCP Station connectivity, tool listing and result rendering; it is not a production server."
+      },
+      "category": "dev",
+      "transport": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-everything"
+      ],
+      "requires": {
+        "node": true
+      },
+      "risk": {
+        "level": "medium",
+        "reasons": [
+          {
+            "zh": "get-env 会返回服务器进程的环境变量，可能包含密钥",
+            "en": "get-env returns the server process environment, which may contain secrets"
+          },
+          {
+            "zh": "仅用于测试，工具行为不代表真实业务",
+            "en": "Testing-only; tool behavior is not a real workload"
+          }
+        ]
+      },
+      "docs": "https://github.com/modelcontextprotocol/servers/tree/main/src/everything",
+      "tags": [
+        "testing",
+        "reference"
+      ],
+      "smoke": {
+        "tool": "echo",
+        "args": {
+          "message": "mcp-station"
+        },
+        "expectContains": "Echo: mcp-station"
+      },
+      "note": {
+        "zh": "参考/测试服务器：2.2.1 声明 Node.js ≥ 24，Node 22 会告警但实测可用；不要把 get-env 的结果贴到公开场合。",
+        "en": "Reference/testing server: 2.2.1 declares Node.js >= 24 (Node 22 warns but works). Do not paste get-env output into public places."
+      },
+      "env": {
+        "npm_config_cache": "{{dshHome}}/mcp-station/npm-cache"
+      }
+    }
+  ]
+}

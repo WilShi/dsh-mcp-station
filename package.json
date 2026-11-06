@@ -1,0 +1,95 @@
+{
+  "name": "dsh-mcp-station",
+  "version": "0.1.0",
+  "description": "MCP Station for DeepSeek Harness: a curated MCP app store with one-click install, browser automation presets, health checks and safe management. · DSH MCP 应用商店：精选 MCP 一键安装、浏览器预设、连通性检测与安全管理。",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/WilShi/dsh-mcp-station.git"
+  },
+  "homepage": "https://github.com/WilShi/dsh-mcp-station#readme",
+  "bugs": {
+    "url": "https://github.com/WilShi/dsh-mcp-station/issues"
+  },
+  "author": "WilShi",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./client": "./lib/client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/",
+    "data/",
+    "cordis.patch.yml",
+    "README.md",
+    "README.zh.md",
+    "MARKET.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": "^22.19.0 || ^24.0.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && node scripts/build-client.mjs && node scripts/verify-client.mjs",
+    "build:host": "tsc -p tsconfig.build.json",
+    "build:client": "node scripts/build-client.mjs && node scripts/verify-client.mjs",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "^3.18.5",
+    "yaml": "^2.9.1"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.5"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "^4.1.0",
+    "@deepseek-ai/dsh-client-locale": "^0.2.1-rc.5",
+    "@deepseek-ai/dsh-client-ui-renderer": "^0.2.1-rc.5",
+    "@deepseek-ai/dsh-client-ui-settings": "^0.2.1-rc.5",
+    "@deepseek-ai/dsh-client-ui-sidebar": "^0.2.1-rc.5",
+    "@deepseek-ai/dsh-client-ui-slots": "^0.2.1-rc.5",
+    "@deepseek-ai/dsh-host-webserver": "^0.2.1-rc.5",
+    "@types/node": "^22.20.1",
+    "esbuild": "^0.21.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.9.3",
+    "vitest": "^2.1.8"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-sidebar"
+      ]
+    }
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "mcp",
+    "mcp-manager",
+    "mcp-store",
+    "playwright",
+    "browser-automation",
+    "one-click"
+  ]
+}

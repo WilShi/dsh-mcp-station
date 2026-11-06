@@ -1,0 +1,6 @@
+# dsh-mcp-station bundle patch: activates the MCP Station plugin in any profile
+# that installs this package (via `dsh plugin --profile <name> add dsh-mcp-station`).
+# The user's own cordis.patch.yml may override or disable this row by id.
+- insert:
+    - id: dsh-mcp-station
+      name: 'dsh-mcp-station'
