@@ -6,3 +6,4 @@ e2e/home/
 e2e/screenshots/
 e2e/*.log
 e2e/npm-cache/
+e2e/npm-home/

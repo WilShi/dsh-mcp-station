@@ -46,6 +46,8 @@ export interface ManagedRowInput {
   url?: string
   /** Extra environment. env:NAME is rendered as !!js process.env.NAME. */
   env?: PatchEnv
+  /** Extra HTTP headers (streamable-http). env:NAME is rendered as !!js process.env.NAME. */
+  headers?: PatchEnv
   /** Whether the row is active (false renders disabled: true). */
   enabled?: boolean
 }
@@ -241,14 +243,19 @@ function renderJsExpression(expression: string): string {
   return '!!js ' + JSON.stringify(expression)
 }
 
-function renderEnvBlock(lines: string[], env: PatchEnv | undefined, indent: string): void {
-  if (env === undefined) return
-  const keys = Object.keys(env)
+function renderStringMapBlock(
+  lines: string[],
+  field: 'env' | 'headers',
+  map: PatchEnv | undefined,
+  indent: string,
+): void {
+  if (map === undefined) return
+  const keys = Object.keys(map)
   if (keys.length === 0) return
-  lines.push(indent + 'env:')
+  lines.push(indent + field + ':')
   for (const key of keys) {
     const renderedKey = /^[A-Za-z_][A-Za-z0-9_-]*$/.test(key) ? key : quoteYamlScalar(key)
-    lines.push(indent + '  ' + renderedKey + ': ' + renderEnvValue(env[key]!))
+    lines.push(indent + '  ' + renderedKey + ': ' + renderEnvValue(map[key]!))
   }
 }
 
@@ -272,7 +279,8 @@ export function renderManagedRow(row: ManagedRowInput): string[] {
       lines.push('    args: [' + row.args.map((arg) => quoteYamlScalar(arg)).join(', ') + ']')
     }
   }
-  renderEnvBlock(lines, row.env, '    ')
+  renderStringMapBlock(lines, 'env', row.env, '    ')
+  renderStringMapBlock(lines, 'headers', row.headers, '    ')
   if (row.enabled === false) lines.push('  disabled: true')
   return lines
 }
@@ -297,6 +305,7 @@ function normalizeRows(rows: readonly ManagedRowInput[]): ManagedRowInput[] {
       enabled: row.enabled !== false,
       ...(row.args === undefined ? {} : { args: [...row.args] }),
       ...(row.env === undefined ? {} : { env: { ...row.env } }),
+      ...(row.headers === undefined ? {} : { headers: { ...row.headers } }),
     }
   })
 }
@@ -573,6 +582,22 @@ export function addManagedRow(text: string, row: ManagedRowInput): string {
   return upsertManagedBlock(text, [...managed, row])
 }
 
+/** Replace one station row in place (same serverName; keeps the existing id). */
+export function replaceManagedRow(text: string, row: ManagedRowInput): string {
+  const managed = readManagedBlock(text).rows
+  const index = managed.findIndex((existing) => existing.serverName === row.serverName)
+  if (index < 0) throw new Error('受管块中找不到 MCP server: ' + row.serverName)
+  const next = managed.map((existing, rowIndex) => {
+    if (rowIndex !== index) return existing
+    return {
+      ...row,
+      id: row.id ?? existing.id,
+      enabled: row.enabled ?? existing.enabled,
+    }
+  })
+  return upsertManagedBlock(text, next)
+}
+
 /** Enable or disable one station row. Throws when the row is not in the managed block. */
 export function setManagedRowEnabled(text: string, serverName: string, enabled: boolean): string {
   const managed = readManagedBlock(text).rows
@@ -728,7 +753,25 @@ export function installedFromServer(row: PatchRow, catalog?: CatalogFile): Insta
   if (row.command !== undefined) server.command = row.command
   if (row.args !== undefined) server.args = row.args
   if (row.url !== undefined) server.url = row.url
+  // Only station rows are editable, so only they need their local env/headers
+  // round-tripped to the UI; external rows stay read-only and never echo values.
+  if (row.origin === 'station') {
+    const env = flattenConfigMap(row.env)
+    if (env !== undefined) server.env = env
+    const headers = flattenConfigMap(row.headers)
+    if (headers !== undefined) server.headers = headers
+  }
   return server
+}
+
+/** Flatten env/headers for the API; complex !!js expressions keep a visible prefix. */
+function flattenConfigMap(map: PatchEnv | undefined): Record<string, string> | undefined {
+  if (map === undefined) return undefined
+  const out: Record<string, string> = {}
+  for (const [key, value] of Object.entries(map)) {
+    out[key] = typeof value === 'string' ? value : '!!js ' + value.js
+  }
+  return out
 }
 
 /** Read installed servers from the profile patch and the station block. */

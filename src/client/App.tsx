@@ -8,12 +8,16 @@ import {
   type JSX,
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react'
-import type { CatalogFile, InstalledServer } from '../shared/types.ts'
-import { errorMessage, fetchCatalog } from './api.ts'
+import type { CatalogFile, InstalledServer, ProbeResult } from '../shared/types.ts'
+import type { ImportPayload } from '../shared/types.ts'
+import { applyProbe, errorMessage, fetchCatalog, testServer } from './api.ts'
+import { CustomServerDialog, type CustomSavedOptions } from './CustomServerDialog.tsx'
+import { ImportDialog } from './ImportDialog.tsx'
 import { InstalledTab } from './InstalledTab.tsx'
 import { SettingsTab } from './SettingsTab.tsx'
 import { StoreTab } from './StoreTab.tsx'
 import { localizedText, type StationLocaleKey } from './locales.ts'
+import { readAutoTest, writeAutoTest } from './prefs.ts'
 import { ErrorState, LoadingState, Spinner, ToastStack, type ToastItem, type TFunc } from './ui.tsx'
 
 /** Panel properties; `embedded` fills a settings section instead of a drawer. */
@@ -29,6 +33,30 @@ const TABS: readonly { id: Tab; key: StationLocaleKey }[] = [
   { id: 'installed', key: 'tabInstalled' },
   { id: 'settings', key: 'tabSettings' },
 ]
+
+interface CustomDialogState {
+  editing?: InstalledServer
+}
+
+function serverName(server: InstalledServer): string {
+  const label = localizedText(server.displayName)
+  return label === '' ? server.serverName : label
+}
+
+function mergeServers(
+  current: readonly InstalledServer[],
+  incoming: readonly InstalledServer[],
+): readonly InstalledServer[] {
+  const map = new Map(current.map(server => [server.serverName, server]))
+  for (const server of incoming) map.set(server.serverName, { ...map.get(server.serverName), ...server })
+  return [...map.values()]
+}
+
+function withoutName(record: Record<string, boolean>, key: string): Record<string, boolean> {
+  const next = { ...record }
+  Reflect.deleteProperty(next, key)
+  return next
+}
 
 function RefreshIcon(): JSX.Element {
   return (
@@ -55,6 +83,10 @@ export function StationApp(props: StationAppProps): JSX.Element {
   const [reloadToken, setReloadToken] = useState(0)
   const [settingsToken, setSettingsToken] = useState(0)
   const [toasts, setToasts] = useState<readonly ToastItem[]>([])
+  const [autoTest, setAutoTestState] = useState<boolean>(() => readAutoTest())
+  const [probing, setProbing] = useState<Record<string, boolean>>({})
+  const [customDialog, setCustomDialog] = useState<CustomDialogState | null>(null)
+  const [importOpen, setImportOpen] = useState(false)
   const toastSeq = useRef(0)
   const timers = useRef<Set<number>>(new Set())
   const catalogRef = useRef<CatalogFile | null>(null)
@@ -112,7 +144,7 @@ export function StationApp(props: StationAppProps): JSX.Element {
   }, [pushToast, reloadToken, t])
 
   const upsertServer = useCallback((server: InstalledServer): void => {
-    setServers((current) => {
+    setServers(current => {
       const index = current.findIndex(item => item.serverName === server.serverName)
       if (index === -1) return current.concat(server)
       const next = current.slice()
@@ -121,18 +153,87 @@ export function StationApp(props: StationAppProps): JSX.Element {
     })
   }, [])
 
-  const dropServer = useCallback((serverName: string): void => {
-    setServers(current => current.filter(item => item.serverName !== serverName))
+  const dropServer = useCallback((name: string): void => {
+    setServers(current => current.filter(item => item.serverName !== name))
   }, [])
+
+  /**
+   * Probe one server and merge the outcome into the list. Returns the probe
+   * result so dialogs can render it inline.
+   * @param server - row to test (name is the identity).
+   */
+  const probeServer = useCallback(
+    async (server: InstalledServer): Promise<ProbeResult | null> => {
+      setProbing(current => ({ ...current, [server.serverName]: true }))
+      try {
+        const payload = await testServer(server.serverName)
+        setServers(current =>
+          current.map(item => (item.serverName === server.serverName ? applyProbe(item, payload.result) : item)),
+        )
+        if (!payload.result.ok) {
+          pushToast('error', t('toastTestFailed', { name: serverName(server) }))
+        }
+        return payload.result
+      } catch (cause: unknown) {
+        const message = errorMessage(cause, t('unknownError'))
+        setServers(current =>
+          current.map(item =>
+            item.serverName === server.serverName ? { ...item, status: 'error', error: message } : item,
+          ),
+        )
+        pushToast('error', t('toastTestFailed', { name: serverName(server) }))
+        return null
+      } finally {
+        setProbing(current => withoutName(current, server.serverName))
+      }
+    },
+    [pushToast, t],
+  )
 
   const handleInstalled = useCallback(
     (server: InstalledServer): void => {
       upsertServer(server)
-      const name = localizedText(server.displayName) === '' ? server.serverName : localizedText(server.displayName)
-      pushToast('success', t('toastInstalled', { name }))
+      pushToast('success', t('toastInstalled', { name: serverName(server) }))
+      if (autoTest && server.enabled && server.status === 'unknown') void probeServer(server)
     },
-    [pushToast, t, upsertServer],
+    [autoTest, probeServer, pushToast, t, upsertServer],
   )
+
+  const handleCustomSaved = useCallback(
+    (server: InstalledServer, options?: CustomSavedOptions): void => {
+      upsertServer(server)
+      pushToast('success', t('toastCustomSaved', { name: serverName(server) }))
+      if (options?.skipAutoTest === true) return
+      if (autoTest && server.enabled && server.status === 'unknown') void probeServer(server)
+    },
+    [autoTest, probeServer, pushToast, t, upsertServer],
+  )
+
+  const handleImported = useCallback(
+    (payload: ImportPayload): void => {
+      const imported = Array.isArray(payload.imported) ? payload.imported : []
+      const skipped = Array.isArray(payload.skipped) ? payload.skipped : []
+      if (imported.length > 0) setServers(current => mergeServers(current, imported))
+      if (imported.length === 0) pushToast('info', t('importNothing'))
+      else if (skipped.length > 0) {
+        pushToast('success', t('toastImportedSkipped', { count: imported.length, skipped: skipped.length }))
+      } else {
+        pushToast('success', t('toastImported', { count: imported.length }))
+      }
+      if (!autoTest) return
+      void (async () => {
+        for (const server of imported) {
+          if (server.enabled && server.status === 'unknown') await probeServer(server)
+        }
+      })()
+    },
+    [autoTest, probeServer, pushToast, t],
+  )
+
+  const changeAutoTest = useCallback((value: boolean): void => {
+    setAutoTestState(value)
+    writeAutoTest(value)
+  }, [])
 
   const refresh = (): void => {
     if (tab === 'settings') setSettingsToken(value => value + 1)
@@ -159,6 +260,10 @@ export function StationApp(props: StationAppProps): JSX.Element {
       const next = event.key === 'Home' ? TABS[0] : TABS[TABS.length - 1]
       if (next !== undefined) selectTab(next.id)
     }
+  }
+
+  const openAddCustom = (): void => {
+    setCustomDialog({})
   }
 
   const ready = catalog !== null
@@ -228,9 +333,14 @@ export function StationApp(props: StationAppProps): JSX.Element {
             catalog={catalog}
             servers={servers}
             t={t}
+            autoTest={autoTest}
             onInstalled={handleInstalled}
             onOpenInstalled={() => {
               setTab('installed')
+            }}
+            onAddCustom={openAddCustom}
+            onImportJson={() => {
+              setImportOpen(true)
             }}
           />
         ) : null}
@@ -238,16 +348,54 @@ export function StationApp(props: StationAppProps): JSX.Element {
           <InstalledTab
             servers={servers}
             t={t}
+            probing={probing}
             onPatch={upsertServer}
             onRemove={dropServer}
             onToast={pushToast}
             onOpenStore={() => {
               setTab('store')
             }}
+            onAddCustom={openAddCustom}
+            onImportJson={() => {
+              setImportOpen(true)
+            }}
+            onEditCustom={(server) => {
+              setCustomDialog({ editing: server })
+            }}
           />
         ) : null}
-        {ready && tab === 'settings' ? <SettingsTab t={t} onToast={pushToast} refreshToken={settingsToken} /> : null}
+        {ready && tab === 'settings' ? (
+          <SettingsTab
+            t={t}
+            onToast={pushToast}
+            refreshToken={settingsToken}
+            autoTest={autoTest}
+            onAutoTestChange={changeAutoTest}
+          />
+        ) : null}
       </div>
+
+      {customDialog === null ? null : (
+        <CustomServerDialog
+          t={t}
+          {...(customDialog.editing === undefined ? {} : { editing: customDialog.editing })}
+          takenNames={servers.map(server => server.serverName)}
+          onClose={() => {
+            setCustomDialog(null)
+          }}
+          onSaved={handleCustomSaved}
+          probe={probeServer}
+        />
+      )}
+      {importOpen ? (
+        <ImportDialog
+          t={t}
+          onClose={() => {
+            setImportOpen(false)
+          }}
+          onImported={handleImported}
+        />
+      ) : null}
 
       <ToastStack items={toasts} t={t} onDismiss={dismissToast} />
     </div>

@@ -4,7 +4,7 @@ import { useEffect, useState, type JSX } from 'react'
 import type { DoctorCheck, StationStatus } from '../shared/types.ts'
 import { errorMessage, fetchDoctor, fetchStatus } from './api.ts'
 import { localizedText, uiLocale } from './locales.ts'
-import { Badge, EmptyState, ErrorState, LoadingState, Spinner, type TFunc } from './ui.tsx'
+import { Badge, EmptyState, ErrorState, LoadingState, Spinner, Switch, type TFunc } from './ui.tsx'
 
 /** Settings tab properties. */
 export interface SettingsTabProps {
@@ -12,6 +12,9 @@ export interface SettingsTabProps {
   onToast: (kind: 'success' | 'error' | 'info', message: string) => void
   /** Bumped by the panel toolbar to refresh from outside this tab. */
   refreshToken: number
+  /** Probe servers automatically after install/import. */
+  autoTest: boolean
+  onAutoTestChange: (value: boolean) => void
 }
 
 type Phase = 'loading' | 'ready' | 'error'
@@ -168,6 +171,19 @@ export function SettingsTab(props: SettingsTabProps): JSX.Element {
       ) : null}
 
       <div className="ms_sectionHead">
+        <span className="ms_sectionTitle">{t('automationTitle')}</span>
+      </div>
+      <div className="ms_card">
+        <div className="ms_switchRow">
+          <div className="ms_switchText">
+            <span className="ms_switchTitle">{t('autoTestLabel')}</span>
+            <span className="ms_meta">{t('autoTestHint')}</span>
+          </div>
+          <Switch checked={props.autoTest} label={t('autoTestLabel')} onChange={props.onAutoTestChange} />
+        </div>
+      </div>
+
+      <div className="ms_sectionHead">
         <span className="ms_sectionTitle">{t('doctorTitle')}</span>
         <span className="ms_spacer" />
         {doctorPhase === 'ready' && doctor !== null ? (
@@ -208,6 +224,7 @@ export function SettingsTab(props: SettingsTabProps): JSX.Element {
           </ul>
         )
       ) : null}
+
     </div>
   )
 }

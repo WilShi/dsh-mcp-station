@@ -15,8 +15,12 @@ export interface StoreTabProps {
   catalog: CatalogFile
   servers: readonly InstalledServer[]
   t: TFunc
+  /** Probe the server right after install. */
+  autoTest: boolean
   onInstalled: (server: InstalledServer) => void
   onOpenInstalled: () => void
+  onAddCustom: () => void
+  onImportJson: () => void
 }
 
 interface RequirementChip {
@@ -141,6 +145,13 @@ export function StoreTab(props: StoreTabProps): JSX.Element {
           <span className="ms_meta" role="status">
             {t('storeSummary', { shown: visible.length, total: catalog.presets.length })}
           </span>
+          <span className="ms_spacer" />
+          <button className="ms_btn" type="button" onClick={props.onAddCustom}>
+            {t('addCustom')}
+          </button>
+          <button className="ms_btn ms_btnGhost" type="button" onClick={props.onImportJson}>
+            {t('importJson')}
+          </button>
         </div>
       </div>
 
@@ -229,6 +240,7 @@ export function StoreTab(props: StoreTabProps): JSX.Element {
         <InstallDialog
           preset={target}
           t={t}
+          autoTest={props.autoTest}
           onClose={() => {
             setTarget(null)
           }}

@@ -12,6 +12,7 @@ import {
   readManagedBlock,
   removeManagedRow,
   renderManagedRow,
+  replaceManagedRow,
   setManagedRowEnabled,
   upsertManagedBlock,
   writePatchTextAtomic,
@@ -256,6 +257,94 @@ describe('readManagedBlock / inspectPatchText', () => {
     expect(inspectPatchText('[]\n', { requireBlock: true }).ok).toBe(false)
     const added = upsertManagedBlock(EXTERNAL_PATCH, [PLAYWRIGHT])
     expect(inspectPatchText(added, { requireBlock: true })).toEqual({ ok: true, hasBlock: true })
+  })
+})
+
+
+const EXTERNAL_HTTP_PATCH = [
+  '# external HTTP MCP row with headers',
+  '- insert:',
+  '    - id: user-mcp-remote',
+  "      name: '@deepseek-ai/dsh-mcp-client'",
+  '      config:',
+  '        serverName: remote',
+  '        transport: streamable-http',
+  '        url: https://example.com/mcp',
+  '        headers:',
+  '          Authorization: !!js process.env.MCP_TOKEN',
+  '          X-Trace-Id: trace-literal',
+  '',
+].join('\n')
+
+const HTTP_ROW: ManagedRowInput = {
+  serverName: 'remote-http',
+  transport: 'streamable-http',
+  url: 'https://example.com/mcp',
+  headers: {
+    Authorization: 'env:MCP_TOKEN',
+    'X-Api-Key': 'env:API_KEY',
+    'X-Plain': 'literal value',
+  },
+}
+
+describe('HTTP headers', () => {
+  it('renders header env references and round-trips them', () => {
+    const lines = renderManagedRow(HTTP_ROW).join('\n')
+    expect(lines).toContain('headers:')
+    expect(lines).toContain('Authorization: !!js process.env.MCP_TOKEN')
+    expect(lines).toContain('X-Api-Key: !!js process.env.API_KEY')
+    expect(lines).toContain("X-Plain: 'literal value'")
+    const text = upsertManagedBlock(EXTERNAL_PATCH, [HTTP_ROW])
+    const parsed = parsePatchRows(text).find((row) => row.origin === 'station' && row.serverName === 'remote-http')!
+    expect(parsed.transport).toBe('streamable-http')
+    expect(parsed.url).toBe('https://example.com/mcp')
+    expect(parsed.headers).toEqual({
+      Authorization: 'env:MCP_TOKEN',
+      'X-Api-Key': 'env:API_KEY',
+      'X-Plain': 'literal value',
+    })
+  })
+
+  it('keeps headers byte-identical when a row is toggled', () => {
+    const added = upsertManagedBlock(EXTERNAL_PATCH, [HTTP_ROW])
+    const disabled = setManagedRowEnabled(added, 'remote-http', false)
+    const enabled = setManagedRowEnabled(disabled, 'remote-http', true)
+    expect(enabled).toBe(added)
+    expect(blockPrefix(disabled)).toBe(EXTERNAL_PATCH)
+  })
+
+  it('parses external HTTP rows with headers', () => {
+    const rows = parsePatchRows(EXTERNAL_HTTP_PATCH)
+    expect(rows).toHaveLength(1)
+    expect(rows[0]!.transport).toBe('streamable-http')
+    expect(rows[0]!.url).toBe('https://example.com/mcp')
+    expect(rows[0]!.headers).toEqual({ Authorization: 'env:MCP_TOKEN', 'X-Trace-Id': 'trace-literal' })
+    expect(rows[0]!.origin).toBe('external')
+  })
+})
+
+describe('replaceManagedRow', () => {
+  it('replaces one station row in place, keeping id and external bytes', () => {
+    const added = upsertManagedBlock(EXTERNAL_PATCH, [PLAYWRIGHT])
+    const updated = replaceManagedRow(added, {
+      serverName: 'playwright',
+      transport: 'stdio',
+      command: 'npx',
+      args: ['-y', '@playwright/mcp@latest', '--headless'],
+      enabled: false,
+    })
+    expect(updated.startsWith(EXTERNAL_PATCH)).toBe(true)
+    const rows = parsePatchRows(updated)
+    expect(rows.filter((row) => row.origin === 'station')).toHaveLength(1)
+    const station = rows.find((row) => row.serverName === 'playwright')!
+    expect(station.args).toEqual(['-y', '@playwright/mcp@latest', '--headless'])
+    expect(station.enabled).toBe(false)
+    expect(readManagedBlock(updated).rows[0]!.id).toBe('mcp-station-playwright')
+  })
+
+  it('throws for an unknown station name', () => {
+    const added = upsertManagedBlock(EXTERNAL_PATCH, [PLAYWRIGHT])
+    expect(() => replaceManagedRow(added, { ...PLAYWRIGHT, serverName: 'nope' })).toThrow(/找不到/)
   })
 })
 

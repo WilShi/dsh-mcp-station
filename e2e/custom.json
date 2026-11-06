@@ -1,0 +1,1 @@
+{"serverName":"station-custom","transport":"stdio","command":"npx","args":["-y","@modelcontextprotocol/server-everything"],"env":{"npm_config_cache":"/Users/wilson/.dsh/workspace/mcp-station/e2e/home/mcp-station/npm-cache"}}

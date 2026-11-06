@@ -13,6 +13,8 @@ import { Badge, Modal, RiskBadge, Spinner, cx, type TFunc } from './ui.tsx'
 export interface InstallDialogProps {
   preset: CatalogPreset
   t: TFunc
+  /** Probe right after the row is written (0.1.1 install `test` flag). */
+  autoTest: boolean
   onClose: () => void
   onInstalled: (server: InstalledServer) => void
 }
@@ -65,6 +67,7 @@ export function InstallDialog(props: InstallDialogProps): JSX.Element {
   const [showErrors, setShowErrors] = useState(false)
   const [phase, setPhase] = useState<Phase>('idle')
   const [error, setError] = useState('')
+  const [installed, setInstalled] = useState<InstalledServer | null>(null)
   const closeTimer = useRef<number | null>(null)
 
   useEffect(
@@ -103,8 +106,9 @@ export function InstallDialog(props: InstallDialogProps): JSX.Element {
       const value = (values[input.key] ?? '').trim()
       if (value !== '') payload[input.key] = value
     }
-    void installServer({ presetId: preset.id, values: payload })
+    void installServer({ presetId: preset.id, values: payload, test: props.autoTest })
       .then((result) => {
+        setInstalled(result.server)
         setPhase('success')
         props.onInstalled(result.server)
         closeTimer.current = window.setTimeout(props.onClose, 1200)
@@ -213,7 +217,11 @@ export function InstallDialog(props: InstallDialogProps): JSX.Element {
       {phase === 'success' ? (
         <div className="ms_okBox" role="status">
           <span>{t('installSuccess')}</span>
-          <span className="ms_mono">{preset.serverName}</span>
+          <span className="ms_mono">{installed?.serverName ?? preset.serverName}</span>
+          {installed?.status === 'connected' && installed.toolCount !== undefined ? (
+            <span>{t('toolCount', { count: installed.toolCount })}</span>
+          ) : null}
+          {installed?.status === 'error' ? <span>{t('installProbeFailed')}</span> : null}
         </div>
       ) : null}
     </Modal>

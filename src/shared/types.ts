@@ -98,6 +98,10 @@ export interface InstalledServer {
   command?: string
   args?: string[]
   url?: string
+  /** Local environment of the row; `env:NAME` means a process.env reference (never a secret on disk). */
+  env?: Record<string, string>
+  /** HTTP headers of the row; `env:NAME` means a process.env reference. */
+  headers?: Record<string, string>
   enabled: boolean
   origin: 'station' | 'external'
   status: ServerStatus
@@ -162,6 +166,44 @@ export interface InstallRequest {
   /** Override the preset serverName (must be unique). */
   serverName?: string
   values?: Record<string, string>
+  /** Probe right after install and return the merged status/tools. */
+  test?: boolean
+}
+
+/** Body of POST /servers/custom and POST /servers/custom/update. */
+export interface CustomServerRequest {
+  /** Primary key: the MCP server namespace. Updates never rename it. */
+  serverName: string
+  transport: McpTransport
+  /** stdio only. */
+  command?: string
+  /** stdio only. */
+  args?: string[]
+  /** stdio only. Values support `env:NAME` process.env references. */
+  env?: Record<string, string>
+  /** streamable-http only. */
+  url?: string
+  /** streamable-http only. Values support `env:NAME` process.env references. */
+  headers?: Record<string, string>
+  /** Defaults to true on create; updates preserve the current value when omitted. */
+  enabled?: boolean
+}
+
+/** Body of POST /servers/import: a JSON document as text. */
+export interface ImportRequest {
+  json: string
+}
+
+/** One entry skipped during import, with the reason it was ignored. */
+export interface ImportSkipped {
+  name: string
+  reason: string
+}
+
+/** Data returned by POST /servers/import. */
+export interface ImportPayload {
+  imported: InstalledServer[]
+  skipped: ImportSkipped[]
 }
 
 export interface ToggleRequest {
@@ -196,6 +238,11 @@ export interface ServersPayload {
 }
 
 export interface InstallPayload {
+  server: InstalledServer
+}
+
+/** Data returned by POST /servers/custom and POST /servers/custom/update. */
+export interface CustomServerPayload {
   server: InstalledServer
 }
 

@@ -10,7 +10,7 @@ export XDG_DATA_HOME="$W/.local-share"
 export XDG_CACHE_HOME="$W/.local-cache"
 export PATH="/Users/wilson/.nvm/versions/node/v22.22.3/bin:$PATH"
 CLI="$W/dsh-runtime/dsh/node_modules/@deepseek-ai/dsh/lib/bin.js"
-PORT="${E2E_PORT:-49700}"
+PORT="${E2E_PORT:-49710}"
 LOG="$PROJ/e2e/boot.log"
 SHOTS="$PROJ/e2e/screenshots"
 mkdir -p "$SHOTS" "$PROJ/e2e"
@@ -65,6 +65,21 @@ probe "/mcp-station/api/servers"
 
 echo "=== 6b. real test connection (npx Playwright MCP; first run downloads)"
 curl -s -m 180 -X POST "http://127.0.0.1:$PORT/mcp-station/api/servers/test" -H "content-type: application/json" -d "{\"serverName\":\"playwright\"}" | head -c 700; echo
+probe "/mcp-station/api/servers"
+echo "=== 6c. custom server (everything) ==="
+CACHE="$DSH_HOME/mcp-station/npm-cache"
+node -e "const fs=require('fs');const cache=process.argv[1];fs.writeFileSync('e2e/custom.json',JSON.stringify({serverName:'station-custom',transport:'stdio',command:'npx',args:['-y','@modelcontextprotocol/server-everything'],env:{npm_config_cache:cache}}))" "$CACHE"
+curl -s -m 60 -X POST "http://127.0.0.1:$PORT/mcp-station/api/servers/custom" -H "content-type: application/json" --data-binary @e2e/custom.json | head -c 450; echo
+curl -s -m 120 -X POST "http://127.0.0.1:$PORT/mcp-station/api/servers/test" -H "content-type: application/json" -d "{\"serverName\":\"station-custom\"}" | head -c 450; echo
+probe "/mcp-station/api/servers"
+
+echo "=== 6d. import Claude/Cursor JSON ==="
+node -e "const fs=require('fs');const cache=process.argv[1];fs.writeFileSync('e2e/import.json',JSON.stringify({json:JSON.stringify({mcpServers:{'station-memory':{command:'npx',args:['-y','@modelcontextprotocol/server-memory'],env:{npm_config_cache:cache}},'bad name!':{command:'npx'}}})}))" "$CACHE"
+curl -s -m 60 -X POST "http://127.0.0.1:$PORT/mcp-station/api/servers/import" -H "content-type: application/json" --data-binary @e2e/import.json | head -c 550; echo
+probe "/mcp-station/api/servers"
+
+echo "=== 6e. install with auto test ==="
+curl -s -m 120 -X POST "http://127.0.0.1:$PORT/mcp-station/api/servers/install" -H "content-type: application/json" -d "{\"presetId\":\"memory\",\"test\":true}" | head -c 550; echo
 probe "/mcp-station/api/servers"
 echo "=== 7. UI screenshots"
 node "$PROJ/e2e/shot.cjs" "$URL" "$SHOTS" 2>&1 | tail -20

@@ -10,10 +10,15 @@
 import type {
   ApiResponse,
   CatalogPayload,
+  CustomServerPayload,
+  CustomServerRequest,
   DoctorPayload,
+  ImportPayload,
   InstallPayload,
   InstallRequest,
+  InstalledServer,
   ProbePayload,
+  ProbeResult,
   RemovePayload,
   ServersPayload,
   StationStatus,
@@ -102,6 +107,26 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return body.data
 }
 
+/**
+ * Merge a probe result into an installed row.
+ * @param server - row to update.
+ * @param result - probe outcome.
+ * @returns a new row carrying status, tools, latency and error.
+ */
+export function applyProbe(server: InstalledServer, result: ProbeResult): InstalledServer {
+  const next: InstalledServer = {
+    ...server,
+    status: result.ok ? 'connected' : 'error',
+    tools: result.tools,
+    toolCount: result.toolCount,
+    latencyMs: result.latencyMs,
+    lastCheckedAt: new Date().toISOString(),
+  }
+  if (result.error === undefined || result.error === '') delete next.error
+  else next.error = result.error
+  return next
+}
+
 /** GET /status — plugin, profile, Chrome and Playwright facts. */
 export function fetchStatus(): Promise<StationStatus> {
   return request<StationStatus>('/status')
@@ -122,9 +147,24 @@ export function fetchDoctor(): Promise<DoctorPayload> {
   return request<DoctorPayload>('/doctor')
 }
 
-/** POST /servers/install — write one managed row. */
+/** POST /servers/install — write one managed row (optionally probed). */
 export function installServer(body: InstallRequest): Promise<InstallPayload> {
   return request<InstallPayload>('/servers/install', { method: 'POST', body: JSON.stringify(body) })
+}
+
+/** POST /servers/custom — write one custom stdio or HTTP server row. */
+export function createCustomServer(body: CustomServerRequest): Promise<CustomServerPayload> {
+  return request<CustomServerPayload>('/servers/custom', { method: 'POST', body: JSON.stringify(body) })
+}
+
+/** POST /servers/custom/update — rewrite one custom server row. */
+export function updateCustomServer(body: CustomServerRequest): Promise<CustomServerPayload> {
+  return request<CustomServerPayload>('/servers/custom/update', { method: 'POST', body: JSON.stringify(body) })
+}
+
+/** POST /servers/import — install servers from a Claude/Cursor style document. */
+export function importServers(json: string): Promise<ImportPayload> {
+  return request<ImportPayload>('/servers/import', { method: 'POST', body: JSON.stringify({ json }) })
 }
 
 /** POST /servers/test — probe one server and list its tools. */

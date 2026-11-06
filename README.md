@@ -13,6 +13,12 @@ MCP Station solves three concrete problems for DSH users:
 2. **Slow markets**: the default market index goes through jsDelivr and often takes 15-25s or times out in mainland China. The MCP Station catalog is bundled with the plugin and works offline.
 3. **Did it actually work?**: every entry can be tested (initialize + tools/list) with tool count, latency and error details. The Playwright preset detects local Chrome and adds --browser chrome for you.
 
+## What's new in 0.1.1
+
+- **Custom MCP servers**: stdio (command/args/env) or HTTP (url/headers), with validation and a test button.
+- **Import JSON**: paste Claude / Cursor mcpServers configs or a servers array; invalid or duplicate entries are skipped with reasons.
+- **Auto-test after install**: initialize + tools/list immediately, showing status, tool count and errors; can be disabled in Settings.
+
 ## Features
 
 - Curated store: browser, search, dev, data, memory and productivity categories, bilingual copy and risk labels.

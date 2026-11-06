@@ -171,7 +171,7 @@ const DIALOG = `
 .ms_dialogHead{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--ms-border)}
 .ms_dialogTitle{font-weight:600;font-size:14px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ms_dialogBody{padding:13px 15px;overflow:auto;display:flex;flex-direction:column;gap:11px}
-.ms_dialogFoot{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:11px 15px;border-top:1px solid var(--ms-border);background:var(--ms-surface)}
+.ms_dialogFoot{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px;padding:11px 15px;border-top:1px solid var(--ms-border);background:var(--ms-surface)}
 .ms_field{display:flex;flex-direction:column;gap:4px}
 .ms_label{font-size:12px;font-weight:500;display:flex;align-items:center;gap:6px;color:var(--ms-text)}
 .ms_reqMark{color:var(--ms-error)}
@@ -230,7 +230,39 @@ const RESPONSIVE = `
 }
 `
 
-const CSS = [TOKENS, LAYOUT, BUTTONS, BADGES, CARD, SERVERS, SETTINGS, STATES, DIALOG, TOAST, DRAWER, RESPONSIVE].join('\n')
+
+const EXTRA = `
+.ms_actionsBar{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.ms_probing{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--ms-text3)}
+.ms_errRow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ms_errRow .ms_err{flex:1 1 220px;min-width:0}
+.ms_errDetails{flex:1 1 100%;margin:0;max-height:170px;overflow:auto;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;line-height:1.45;color:var(--ms-error);background:color-mix(in srgb,var(--ms-error) 7%,transparent);border:1px solid color-mix(in srgb,var(--ms-error) 30%,transparent);border-radius:8px;padding:7px 9px}
+.ms_textarea{width:100%;font:inherit;font-size:12.5px;line-height:1.5;padding:6px 9px;border-radius:8px;border:1px solid var(--ms-border);background:var(--ms-surface);color:var(--ms-text);min-height:62px;resize:vertical}
+.ms_textarea::placeholder{color:var(--ms-text3)}
+.ms_textarea:focus{outline:none;border-color:var(--ms-accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--ms-accent) 22%,transparent)}
+.ms_textarea[aria-invalid="true"]{border-color:var(--ms-error)}
+.ms_textareaMono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px}
+.ms_segment{display:inline-flex;align-items:center;border:1px solid var(--ms-border);border-radius:9px;overflow:hidden;background:var(--ms-surface);width:fit-content}
+.ms_segmentBtn{appearance:none;border:0;background:transparent;color:var(--ms-text2);font:inherit;font-size:12px;line-height:18px;padding:5px 12px;cursor:pointer;white-space:nowrap}
+.ms_segmentBtn:hover:not(:disabled){background:var(--ms-hover);color:var(--ms-text)}
+.ms_segmentBtn[data-on="true"]{background:color-mix(in srgb,var(--ms-accent) 16%,transparent);color:var(--ms-text);font-weight:500}
+.ms_segmentBtn:disabled{opacity:.55;cursor:default}
+.ms_switchRow{display:flex;align-items:flex-start;gap:12px}
+.ms_switchText{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.ms_switchTitle{font-size:12.5px;color:var(--ms-text)}
+.ms_importResult{display:flex;flex-direction:column;gap:10px}
+.ms_resultGroup{display:flex;flex-direction:column;gap:5px}
+.ms_resultTitle{font-size:12px;font-weight:600;color:var(--ms-text)}
+.ms_nameList{margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:6px}
+.ms_nameList li{display:inline-flex;align-items:center;border:1px solid var(--ms-border);background:var(--ms-surface);border-radius:7px;padding:2px 8px;min-width:0}
+.ms_importedName{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;color:var(--ms-text);word-break:break-all}
+.ms_skippedList{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.ms_skipped{display:flex;flex-direction:column;gap:1px;border:1px solid color-mix(in srgb,var(--ms-warn) 32%,transparent);background:color-mix(in srgb,var(--ms-warn) 8%,transparent);border-radius:8px;padding:6px 9px;min-width:0}
+.ms_skippedName{font-size:12px;font-weight:500;color:var(--ms-text);word-break:break-all}
+.ms_skippedReason{font-size:11px;color:var(--ms-warn);word-break:break-word}
+`
+
+const CSS = [TOKENS, LAYOUT, BUTTONS, BADGES, CARD, SERVERS, SETTINGS, STATES, DIALOG, TOAST, DRAWER, EXTRA, RESPONSIVE].join('\n')
 
 /** Inject the stylesheet if it is not present yet; returns its disposer. */
 export function injectStyles(): () => void {

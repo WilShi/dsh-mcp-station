@@ -35,6 +35,12 @@ mcp, mcp-manager, mcp-store, playwright, browser, automation, devtools, one-clic
 
 ## 更新日志
 
+### 0.1.1
+
+- 自定义 MCP 服务器（stdio/HTTP + headers）
+- Claude/Cursor JSON 配置导入
+- 安装后自动测试 / 一键重试
+
 ### 0.1.0
 
 - 首个 MVP：精选目录、一键安装、连通性检测、Playwright 预设、环境体检。

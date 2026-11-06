@@ -13,6 +13,12 @@ MCP Station 是 DeepSeek Harness（DSH）的 MCP 管理插件。它解决三个�
 2. **市场太慢**：官方插件市场的索引走 jsDelivr，国内经常 15-25 秒甚至超时。MCP Station 的目录随插件打包，离线可用，不依赖任何远程索引。
 3. **装完不知道好不好**：每一项都能「测试连接」，列出工具数量、延迟和错误原因；Playwright 预设会自动检测本机 Chrome 并补上 --browser chrome。
 
+## 0.1.1 新增
+
+- **自定义 MCP 服务器**：stdio（command/args/env）或 HTTP（url/headers），带表单校验与测试。
+- **从 JSON 导入**：粘贴 Claude / Cursor 的 mcpServers 配置或 servers 数组，一次导入；非法/重名项逐条跳过并给原因。
+- **安装后自动测试**：装完立即 initialize + tools/list，状态、工具数、错误直接显示；设置页可关闭。
+
 ## 功能
 
 - **精选应用商店**：浏览器、搜索、开发、数据、记忆、效率分类；中英文说明与风险标签。
@@ -63,6 +69,11 @@ MCP Station 是 DeepSeek Harness（DSH）的 MCP 管理插件。它解决三个�
 - 桌面自动化类能力请只给可信 Agent；MCP Station 会标注风险级别与原因。
 - env 值写 env:NAME 时只写入 !!js process.env.NAME，密钥不落盘；secret 输入不回显。
 - 受管块之外的 MCP 配置只读展示，不会被修改。
+
+## 更新日志
+
+- **0.1.1**：自定义服务器（stdio/HTTP + headers）、Claude/Cursor JSON 导入、安装后自动测试。
+- **0.1.0**：首个 MVP，9 个精选预设、一键安装、连通性检测、Playwright 预设、环境体检。
 
 ## 兼容性
 

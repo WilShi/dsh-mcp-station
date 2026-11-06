@@ -1,0 +1,1 @@
+{"json":"{\"mcpServers\":{\"station-memory\":{\"command\":\"npx\",\"args\":[\"-y\",\"@modelcontextprotocol/server-memory\"],\"env\":{\"npm_config_cache\":\"/Users/wilson/.dsh/workspace/mcp-station/e2e/home/mcp-station/npm-cache\"}},\"bad name!\":{\"command\":\"npx\"}}}"}

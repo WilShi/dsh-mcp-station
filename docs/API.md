@@ -70,3 +70,39 @@ server must be inside an insert list. Disabling a managed server writes
 
 Everything outside the block is preserved byte-for-byte. Rows outside the block
 are never modified by MCP Station.
+
+## 0.1.1 additions
+
+| Method | Path | Body | Data |
+| --- | --- | --- | --- |
+| POST | `/servers/custom` | `CustomServerInput` | `{ server: InstalledServer }` |
+| POST | `/servers/custom/update` | `CustomServerInput` | `{ server: InstalledServer }` |
+| POST | `/servers/import` | `{ json: string }` | `{ imported: InstalledServer[], skipped: { name, reason }[] }` |
+
+`POST /servers/install` accepts an optional `test: boolean`; when true the
+server is probed before the response and carries `status`, `toolCount`,
+`tools` and `latencyMs`.
+
+### CustomServerInput
+
+- `serverName`: unique name, `[A-Za-z0-9_-]{1,32}`.
+- `transport`: `stdio` or `streamable-http`.
+- stdio: `command`, optional `args: string[]`, `env: Record<string,string>`.
+- HTTP: `url`, optional `headers: Record<string,string>`.
+- `enabled?: boolean` (default true).
+
+Header and env values support `env:NAME`, which is written as
+`!!js process.env.NAME` so the secret itself is not persisted.
+
+### Import formats
+
+Accepted JSON documents:
+
+```json
+{ "mcpServers": { "name": { "command": "npx", "args": ["-y", "pkg"] } } }
+{ "mcpServers": { "name": { "url": "https://example.com/mcp", "headers": { "Authorization": "Bearer x" } } } }
+{ "servers": [ { "name": "name", "command": "npx" } ] }
+```
+
+Invalid, duplicate or already-installed names are skipped with a reason;
+valid entries are installed into the managed block.

@@ -1,8 +1,8 @@
-/** Installed tab: connection state, tools, test/toggle/remove actions. */
+/** Installed tab: connection state, tools, test/toggle/edit/remove actions. */
 
 import { useMemo, useState, type JSX } from 'react'
 import type { InstalledServer, ServerStatus } from '../shared/types.ts'
-import { errorMessage, removeServer, testServer, toggleServer } from './api.ts'
+import { applyProbe, errorMessage, removeServer, testServer, toggleServer } from './api.ts'
 import { formatClock, localizedText, uiLocale } from './locales.ts'
 import { Badge, EmptyState, Spinner, StatusDot, Switch, cx, type TFunc } from './ui.tsx'
 
@@ -14,6 +14,11 @@ export interface InstalledTabProps {
   onRemove: (serverName: string) => void
   onToast: (kind: 'success' | 'error' | 'info', message: string) => void
   onOpenStore: () => void
+  onAddCustom: () => void
+  onImportJson: () => void
+  onEditCustom: (server: InstalledServer) => void
+  /** Rows the panel is probing automatically after an install or import. */
+  probing: Record<string, boolean>
 }
 
 type BusyAction = 'test' | 'toggle' | 'remove'
@@ -42,6 +47,10 @@ function commandLine(server: InstalledServer): string {
   return [server.command, ...(server.args ?? [])].join(' ')
 }
 
+function isCustomServer(server: InstalledServer): boolean {
+  return server.origin === 'station' && server.presetId === undefined
+}
+
 /** Installed-server management list. */
 export function InstalledTab(props: InstalledTabProps): JSX.Element {
   const { t, servers } = props
@@ -50,6 +59,7 @@ export function InstalledTab(props: InstalledTabProps): JSX.Element {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [confirming, setConfirming] = useState<string | null>(null)
   const [notes, setNotes] = useState<Record<string, RowNote>>({})
+  const [details, setDetails] = useState<Record<string, boolean>>({})
 
   const sorted = useMemo(() => {
     const list = servers.slice()
@@ -75,24 +85,13 @@ export function InstalledTab(props: InstalledTabProps): JSX.Element {
     void testServer(server.serverName)
       .then((payload) => {
         const result = payload.result
-        const next: InstalledServer = {
-          ...server,
-          status: result.ok ? 'connected' : 'error',
-          tools: result.tools,
-          toolCount: result.toolCount,
-          latencyMs: result.latencyMs,
-          lastCheckedAt: new Date().toISOString(),
-        }
-        if (result.error === undefined || result.error === '') delete next.error
-        else next.error = result.error
-        props.onPatch(next)
+        props.onPatch(applyProbe(server, result))
         if (result.ok) {
           setNote(server.serverName, 'ok', t('testOk', { count: result.toolCount, ms: result.latencyMs }))
           props.onToast('success', t('toastTestOk', { name: serverLabel(server, locale) }))
           return
         }
-        const reason = result.error ?? t('testFailed')
-        setNote(server.serverName, 'err', reason)
+        setNote(server.serverName, 'err', result.error ?? t('testFailed'))
         props.onToast('error', t('toastTestFailed', { name: serverLabel(server, locale) }))
       })
       .catch((cause: unknown) => {
@@ -138,180 +137,252 @@ export function InstalledTab(props: InstalledTabProps): JSX.Element {
       })
   }
 
+  const toolbar = (
+    <div className="ms_actionsBar">
+      <button className="ms_btn" type="button" onClick={props.onAddCustom}>
+        {t('addCustom')}
+      </button>
+      <button className="ms_btn ms_btnGhost" type="button" onClick={props.onImportJson}>
+        {t('importJson')}
+      </button>
+      <span className="ms_spacer" />
+      <span className="ms_meta" role="status">
+        {t('installedSummary', { count: servers.length })}
+      </span>
+    </div>
+  )
+
   if (sorted.length === 0) {
     return (
-      <EmptyState
-        title={t('empty')}
-        hint={t('emptyHint')}
-        action={
-          <button className="ms_btn ms_btnPrimary" type="button" onClick={props.onOpenStore}>
-            {t('goStore')}
-          </button>
-        }
-      />
+      <>
+        {toolbar}
+        <EmptyState
+          title={t('empty')}
+          hint={t('emptyHint')}
+          action={
+            <div className="ms_row">
+              <button className="ms_btn ms_btnPrimary" type="button" onClick={props.onOpenStore}>
+                {t('goStore')}
+              </button>
+              <button className="ms_btn" type="button" onClick={props.onAddCustom}>
+                {t('addCustom')}
+              </button>
+            </div>
+          }
+        />
+      </>
     )
   }
 
   return (
-    <div className="ms_srvList">
-      {sorted.map((server) => {
-        const name = serverLabel(server, locale)
-        const action = busy[server.serverName]
-        const external = server.origin === 'external'
-        const note = notes[server.serverName]
-        const isExpanded = expanded[server.serverName] === true
-        const tools = server.tools ?? []
-        const toolCount = server.toolCount ?? (tools.length === 0 ? undefined : tools.length)
-        const meta = commandLine(server)
-        const checkedAt = formatClock(server.lastCheckedAt, locale)
-        return (
-          <article
-            className="ms_srv"
-            key={server.serverName}
-            data-disabled={!server.enabled}
-            aria-label={name}
-          >
-            <div className="ms_srvTop">
-              <StatusDot status={server.status} t={t} />
-              <span className="ms_srvName" title={server.serverName}>
-                {name}
-              </span>
-              <Badge tone="plain">{server.transport === 'stdio' ? t('transportStdio') : t('transportHttp')}</Badge>
-              {external ? (
-                <Badge tone="warn" title={t('externalHint')}>
-                  {t('originExternal')}
-                </Badge>
-              ) : null}
-              {toolCount === undefined ? null : <span className="ms_meta">{t('toolCount', { count: toolCount })}</span>}
-              {server.latencyMs === undefined ? null : (
-                <span className="ms_meta">{t('latency', { ms: server.latencyMs })}</span>
-              )}
-            </div>
-
-            <div className="ms_srvMeta">
-              <span className="ms_mono">{server.serverName}</span>
-              {meta === '' || meta === server.serverName ? null : (
-                <span className="ms_mono" title={meta}>
-                  {meta}
+    <>
+      {toolbar}
+      <div className="ms_srvList">
+        {sorted.map((server) => {
+          const name = serverLabel(server, locale)
+          const action = busy[server.serverName]
+          const external = server.origin === 'external'
+          const custom = isCustomServer(server)
+          const isProbing = props.probing[server.serverName] === true
+          const note = notes[server.serverName]
+          const isExpanded = expanded[server.serverName] === true
+          const tools = server.tools ?? []
+          const toolCount = server.toolCount ?? (tools.length === 0 ? undefined : tools.length)
+          const meta = commandLine(server)
+          const checkedAt = formatClock(server.lastCheckedAt, locale)
+          const disabled = action !== undefined || isProbing
+          return (
+            <article className="ms_srv" key={server.serverName} data-disabled={!server.enabled} aria-label={name}>
+              <div className="ms_srvTop">
+                <StatusDot status={server.status} t={t} />
+                <span className="ms_srvName" title={server.serverName}>
+                  {name}
                 </span>
-              )}
-              <span className="ms_meta">{checkedAt === '' ? t('neverChecked') : t('lastChecked', { time: checkedAt })}</span>
-            </div>
-
-            {server.error === undefined || server.error === '' ? null : (
-              <div className="ms_err" role="alert">
-                {server.error}
-              </div>
-            )}
-            {note === undefined ? null : (
-              <div className={note.kind === 'ok' ? 'ms_ok' : 'ms_err'} role="status">
-                {note.text}
-              </div>
-            )}
-
-            <div className="ms_srvActions">
-              <button
-                className="ms_btn"
-                type="button"
-                disabled={action !== undefined || !server.enabled}
-                title={!server.enabled ? t('testDisabledHint') : undefined}
-                onClick={() => {
-                  runTest(server)
-                }}
-              >
-                {action === 'test' ? <Spinner /> : null}
-                {action === 'test' ? t('testing') : t('test')}
-              </button>
-
-              <Switch
-                checked={server.enabled}
-                disabled={external || action !== undefined}
-                label={t('toggleAria', { name })}
-                onChange={() => {
-                  runToggle(server)
-                }}
-              />
-
-              {confirming === server.serverName ? (
-                <>
-                  <span className="ms_confirm" title={t('removeConfirmHint')}>
-                    {t('removeConfirm')}
+                <Badge tone="plain">{server.transport === 'stdio' ? t('transportStdio') : t('transportHttp')}</Badge>
+                {custom ? <Badge tone="info">{t('customBadge')}</Badge> : null}
+                {external ? (
+                  <Badge tone="warn" title={t('externalHint')}>
+                    {t('originExternal')}
+                  </Badge>
+                ) : null}
+                {isProbing ? (
+                  <span className="ms_probing">
+                    <Spinner />
+                    {t('testing')}
                   </span>
+                ) : null}
+                {toolCount === undefined ? null : <span className="ms_meta">{t('toolCount', { count: toolCount })}</span>}
+                {server.latencyMs === undefined ? null : (
+                  <span className="ms_meta">{t('latency', { ms: server.latencyMs })}</span>
+                )}
+              </div>
+
+              <div className="ms_srvMeta">
+                <span className="ms_mono">{server.serverName}</span>
+                {meta === '' || meta === server.serverName ? null : (
+                  <span className="ms_mono" title={meta}>
+                    {meta}
+                  </span>
+                )}
+                <span className="ms_meta">{checkedAt === '' ? t('neverChecked') : t('lastChecked', { time: checkedAt })}</span>
+              </div>
+
+              {server.error === undefined || server.error === '' ? null : (() => {
+                const lines = server.error.split(/\r?\n/).filter(line => line.trim() !== '')
+                const short = (lines[0] ?? server.error).trim()
+                const compact = short.length > 160 ? short.slice(0, 160) + '…' : short
+                const canExpand = lines.length > 1 || server.error.length > compact.length
+                const expanded = details[server.serverName] === true
+                return (
+                  <div className="ms_errRow" role="alert">
+                    {expanded ? (
+                      <pre className="ms_errDetails">{server.error}</pre>
+                    ) : (
+                      <span className="ms_err">{compact}</span>
+                    )}
+                    {canExpand ? (
+                      <button
+                        className="ms_btn ms_btnGhost"
+                        type="button"
+                        aria-expanded={expanded}
+                        onClick={() => {
+                          setDetails(current => ({ ...current, [server.serverName]: !expanded }))
+                        }}
+                      >
+                        {expanded ? t('hideDetails') : t('showDetails')}
+                      </button>
+                    ) : null}
+                    {disabled ? null : (
+                      <button className="ms_btn ms_btnGhost" type="button" onClick={() => { runTest(server) }}>
+                        {t('retry')}
+                      </button>
+                    )}
+                  </div>
+                )
+              })()}
+              {note === undefined ? null : (
+                <div className={note.kind === 'ok' ? 'ms_ok' : 'ms_err'} role="status">
+                  {note.text}
+                </div>
+              )}
+
+              <div className="ms_srvActions">
+                <button
+                  className="ms_btn"
+                  type="button"
+                  disabled={disabled || !server.enabled}
+                  title={!server.enabled ? t('testDisabledHint') : undefined}
+                  onClick={() => {
+                    runTest(server)
+                  }}
+                >
+                  {action === 'test' || isProbing ? <Spinner /> : null}
+                  {action === 'test' || isProbing ? t('testing') : t('test')}
+                </button>
+
+                <Switch
+                  checked={server.enabled}
+                  disabled={external || disabled}
+                  label={t('toggleAria', { name })}
+                  onChange={() => {
+                    runToggle(server)
+                  }}
+                />
+
+                {custom ? (
                   <button
                     className="ms_btn"
                     type="button"
-                    disabled={action === 'remove'}
+                    disabled={disabled}
                     onClick={() => {
-                      setConfirming(null)
+                      props.onEditCustom(server)
                     }}
                   >
-                    {t('cancel')}
+                    {t('edit')}
                   </button>
-                  <button
-                    className="ms_btn ms_btnDanger"
-                    type="button"
-                    disabled={action === 'remove'}
-                    onClick={() => {
-                      runRemove(server)
-                    }}
-                  >
-                    {action === 'remove' ? <Spinner /> : null}
-                    {action === 'remove' ? t('removing') : t('uninstall')}
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    className="ms_btn ms_btnDanger"
-                    type="button"
-                    disabled={external || action !== undefined}
-                    title={external ? t('externalHint') : t('removeConfirmHint')}
-                    onClick={() => {
-                      setConfirming(server.serverName)
-                    }}
-                  >
-                    {t('uninstall')}
-                  </button>
-                  <button
-                    className={cx('ms_btn', 'ms_btnGhost')}
-                    type="button"
-                    aria-expanded={isExpanded}
-                    onClick={() => {
-                      setExpanded(current => ({ ...current, [server.serverName]: !isExpanded }))
-                    }}
-                  >
-                    {isExpanded
-                      ? t('collapseTools')
-                      : toolCount === undefined
-                        ? t('expandToolsUnknown')
-                        : t('expandTools', { count: toolCount })}
-                  </button>
-                </>
-              )}
-            </div>
+                ) : null}
 
-            {isExpanded ? (
-              tools.length === 0 ? (
-                <p className="ms_meta">{t('noTools')}</p>
-              ) : (
-                <ul className="ms_tools">
-                  {tools.map(tool => (
-                    <li className="ms_tool" key={tool.name}>
-                      <div className="ms_row">
-                        <span className="ms_toolName">{tool.name}</span>
-                        {tool.dangerous === true ? <Badge tone="err">{t('toolDangerous')}</Badge> : null}
-                      </div>
-                      {tool.description === undefined || tool.description === '' ? null : (
-                        <p className="ms_toolDesc">{tool.description}</p>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )
-            ) : null}
-          </article>
-        )
-      })}
-    </div>
+                {confirming === server.serverName ? (
+                  <>
+                    <span className="ms_confirm" title={t('removeConfirmHint')}>
+                      {t('removeConfirm')}
+                    </span>
+                    <button
+                      className="ms_btn"
+                      type="button"
+                      disabled={action === 'remove'}
+                      onClick={() => {
+                        setConfirming(null)
+                      }}
+                    >
+                      {t('cancel')}
+                    </button>
+                    <button
+                      className="ms_btn ms_btnDanger"
+                      type="button"
+                      disabled={action === 'remove'}
+                      onClick={() => {
+                        runRemove(server)
+                      }}
+                    >
+                      {action === 'remove' ? <Spinner /> : null}
+                      {action === 'remove' ? t('removing') : t('uninstall')}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      className="ms_btn ms_btnDanger"
+                      type="button"
+                      disabled={external || disabled}
+                      title={external ? t('externalHint') : t('removeConfirmHint')}
+                      onClick={() => {
+                        setConfirming(server.serverName)
+                      }}
+                    >
+                      {t('uninstall')}
+                    </button>
+                    <button
+                      className={cx('ms_btn', 'ms_btnGhost')}
+                      type="button"
+                      aria-expanded={isExpanded}
+                      onClick={() => {
+                        setExpanded(current => ({ ...current, [server.serverName]: !isExpanded }))
+                      }}
+                    >
+                      {isExpanded
+                        ? t('collapseTools')
+                        : toolCount === undefined
+                          ? t('expandToolsUnknown')
+                          : t('expandTools', { count: toolCount })}
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {isExpanded ? (
+                tools.length === 0 ? (
+                  <p className="ms_meta">{t('noTools')}</p>
+                ) : (
+                  <ul className="ms_tools">
+                    {tools.map(tool => (
+                      <li className="ms_tool" key={tool.name}>
+                        <div className="ms_row">
+                          <span className="ms_toolName">{tool.name}</span>
+                          {tool.dangerous === true ? <Badge tone="err">{t('toolDangerous')}</Badge> : null}
+                        </div>
+                        {tool.description === undefined || tool.description === '' ? null : (
+                          <p className="ms_toolDesc">{tool.description}</p>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )
+              ) : null}
+            </article>
+          )
+        })}
+      </div>
+    </>
   )
 }
