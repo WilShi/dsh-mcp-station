@@ -54,7 +54,7 @@ MCP Station 是 DeepSeek Harness（DSH）的 MCP 管理插件。它解决三个�
 
 ![已安装](docs/screenshots/installed.png)
 
-## 预设（9 个，均已实测工具名/参数）
+## 预设（26 个，均已实测；下表为最常用的 9 个）
 
 | 预设 | 传输 | 说明 |
 | --- | --- | --- |
@@ -68,7 +68,7 @@ MCP Station 是 DeepSeek Harness（DSH）的 MCP 管理插件。它解决三个�
 | 顺序思考 | stdio | sequential-thinking，拆解复杂问题 |
 | Everything 参考服 | stdio | MCP 官方 everything，用来自检客户端能力 |
 
-目录随插件打包在 data/catalog.json；逐项验证证据见 docs/presets.md。
+新增：Notion、Slack、Linear、GitLab、Postgres、SQLite、Kubernetes、Sentry、Git、MongoDB、Supabase、Excel、Brave Search、Exa、Firecrawl、DuckDuckGo、Apify。目录随插件打包在 data/catalog.json；逐项验证证据见 docs/presets.md；官方注册表条目由市场页实时检索。
 
 ## 安全
 

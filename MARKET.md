@@ -29,7 +29,7 @@ mcp, mcp-manager, mcp-store, playwright, browser, automation, devtools, one-clic
 
 ## 截图
 
-- docs/screenshots/store.png：应用商店网格（9 个预设、风险标签、依赖提示）
+- docs/screenshots/store.png：Market 市场视图（来源 chips、搜索、26 个精选预设、风险标签、依赖提示）
 - docs/screenshots/installed.png：已安装 + 测试连接成功（Connected、工具数、延迟）
 - docs/screenshots/settings.png：环境体检（profile、patch、DSH、Chrome、doctor）
 

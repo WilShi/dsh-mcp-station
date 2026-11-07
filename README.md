@@ -52,11 +52,11 @@ CLI:
 
 ![Installed](docs/screenshots/installed.png)
 
-## Presets (9, verified)
+## Presets (26, verified; the table below lists the nine most used)
 
 Playwright Browser, Chrome DevTools, Filesystem, Memory, GitHub (needs GITHUB_PERSONAL_ACCESS_TOKEN), Context7, Tavily (needs API key), Sequential Thinking, Everything.
 
-See data/catalog.json and docs/presets.md for verification evidence.
+Also included: Notion, Slack, Linear, GitLab, Postgres, SQLite, Kubernetes, Sentry, Git, MongoDB, Supabase, Excel, Brave Search, Exa, Firecrawl, DuckDuckGo and Apify. See data/catalog.json and docs/presets.md for verification evidence; official-registry entries are searched live from the Market tab.
 
 ## Compatibility
 
