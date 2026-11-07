@@ -13,6 +13,13 @@ MCP Station solves three concrete problems for DSH users:
 2. **Slow markets**: the default market index goes through jsDelivr and often takes 15-25s or times out in mainland China. The MCP Station catalog is bundled with the plugin and works offline.
 3. **Did it actually work?**: every entry can be tested (initialize + tools/list) with tool count, latency and error details. The Playwright preset detects local Chrome and adds --browser chrome for you.
 
+## What's new in 0.2.0
+
+- **Aggregated market**: browse every configured market source (picks, the official MCP Registry, and custom sources) with search, source filters, load-more and one-click install.
+- **Bigger default catalog**: 26 popular curated presets plus live official-registry search.
+- **Custom market sources**: add a JSON source URL with optional name/language/headers; enable, refresh, delete; one bad source never blocks the others.
+- **Display language**: follow DSH, Chinese, or English, with automatic fallback.
+
 ## What's new in 0.1.1
 
 - **Custom MCP servers**: stdio (command/args/env) or HTTP (url/headers), with validation and a test button.

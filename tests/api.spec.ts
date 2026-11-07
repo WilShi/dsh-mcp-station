@@ -6,6 +6,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { makeApiHandler } from '../src/api.ts'
+import { Market } from '../src/market.ts'
 import { probeStdio, resolveEnvValues } from '../src/mcp/probe.ts'
 import {
   addManagedRow,
@@ -78,6 +79,8 @@ beforeAll(async () => {
       maxBodyBytes: 64 * 1024,
     },
     {
+      // No external network: the registry endpoint is unreachable in unit tests.
+      market: new Market({ dshHome: home, registryBaseUrl: 'http://127.0.0.1:1/v0/servers', requestTimeoutMs: 500 }),
       // Preset installs are probed with a deterministic fake; fixture rows use the real probe.
       probeRow: async (row: PatchRow): Promise<ProbeResult> => {
         if (row.serverName.startsWith('playwright')) {
@@ -150,18 +153,20 @@ describe('MCP Station API', () => {
     expect(patchCheck?.ok).toBe(true)
   })
 
-  it('installs a preset into the managed block with a unique name', async () => {
+  it('installs a preset into the managed block and skips a conflicting serverName', async () => {
     const first = await api('POST', '/servers/install', { presetId: 'playwright' })
     expect(first.status).toBe(200)
     expect(first.json.data.server.serverName).toBe('playwright')
     expect(first.json.data.server.origin).toBe('station')
     expect(first.json.data.server.presetId).toBe('playwright')
     const second = await api('POST', '/servers/install', { presetId: 'playwright' })
-    expect(second.json.data.server.serverName).toBe('playwright-2')
+    expect(second.status).toBe(409)
+    expect(second.json.error.code).toBe('conflict')
+    expect(second.json.error.message).toContain('serverName')
     const text = (await readPatchText(patchPath)).text
     expect(text.startsWith(EXTERNAL_ROW)).toBe(true)
     expect(inspectPatchText(text, { requireBlock: true }).ok).toBe(true)
-    expect(parsePatchRows(text)).toHaveLength(3)
+    expect(parsePatchRows(text)).toHaveLength(2)
   })
 
   it('rejects an explicit duplicate serverName with 409', async () => {
@@ -231,14 +236,14 @@ describe('MCP Station API', () => {
   })
 
   it('deletes a station row and keeps the profile parseable', async () => {
-    const removed = await api('DELETE', '/servers?name=playwright-2')
+    const removed = await api('DELETE', '/servers?name=playwright')
     expect(removed.status).toBe(200)
     expect(removed.json.data.removed).toBe(true)
     const missing = await api('DELETE', '/servers?name=does-not-exist')
     expect(missing.status).toBe(404)
     const text = (await readFile(patchPath, 'utf8')) as string
     expect(inspectPatchText(text, { requireBlock: true }).ok).toBe(true)
-    expect(parsePatchRows(text).some((row) => row.serverName === 'playwright-2')).toBe(false)
+    expect(parsePatchRows(text).some((row) => row.serverName === 'playwright')).toBe(false)
   })
 
   it('returns 404 for unknown GET routes', async () => {
@@ -437,7 +442,7 @@ describe('custom servers, import and install-with-test', () => {
     const installed = await api('POST', '/servers/install', { presetId: 'playwright', test: true })
     expect(installed.status).toBe(200)
     const server = installed.json.data.server
-    expect(server.serverName).toBe('playwright-2')
+    expect(server.serverName).toBe('playwright')
     expect(server.status).toBe('connected')
     expect(server.toolCount).toBe(1)
     expect(server.tools[0].name).toBe('browser_navigate')
@@ -445,7 +450,7 @@ describe('custom servers, import and install-with-test', () => {
     expect(typeof server.lastCheckedAt).toBe('string')
     const list = await api('GET', '/servers')
     const cached = (list.json.data.servers as { serverName: string; status: string }[]).find(
-      (item) => item.serverName === 'playwright-2',
+      (item) => item.serverName === 'playwright',
     )!
     expect(cached.status).toBe('connected')
     const invalid = await api('POST', '/servers/install', { presetId: 'playwright', test: 'yes' })

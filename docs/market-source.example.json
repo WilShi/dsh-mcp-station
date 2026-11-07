@@ -1,0 +1,195 @@
+{
+  "version": 1,
+  "name": "My MCP market (example)",
+  "presets": [
+    {
+      "id": "mysql",
+      "serverName": "mysql",
+      "displayName": {
+        "zh": "MySQL 数据库",
+        "en": "MySQL"
+      },
+      "tagline": {
+        "zh": "用受控账号查询 MySQL",
+        "en": "Query MySQL with a scoped account"
+      },
+      "description": {
+        "zh": "自定义市场源示例：通过 DBHub 连接 MySQL。DSN 由安装时输入，建议使用只读账号。",
+        "en": "Custom-source example: connect to MySQL through DBHub. The DSN is entered at install time; prefer a read-only account."
+      },
+      "category": "data",
+      "transport": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@bytebase/dbhub",
+        "--transport",
+        "stdio",
+        "--dsn",
+        "{{dsn}}"
+      ],
+      "env": {
+        "npm_config_cache": "{{dshHome}}/mcp-station/npm-cache"
+      },
+      "inputs": [
+        {
+          "key": "dsn",
+          "label": {
+            "zh": "MySQL 连接串",
+            "en": "MySQL DSN"
+          },
+          "description": {
+            "zh": "形如 mysql://user:pass@host:3306/db；会写入本机 profile",
+            "en": "e.g. mysql://user:pass@host:3306/db; stored in the local profile"
+          },
+          "kind": "secret",
+          "required": true
+        }
+      ],
+      "requires": {
+        "node": true,
+        "apiKey": true
+      },
+      "risk": {
+        "level": "high",
+        "reasons": [
+          {
+            "zh": "可执行任意 SQL（含写操作）",
+            "en": "Can execute arbitrary SQL, including writes"
+          },
+          {
+            "zh": "连接串含密码并写入 profile",
+            "en": "The DSN contains a password and is stored in the profile"
+          }
+        ]
+      },
+      "docs": "https://github.com/bytebase/dbhub",
+      "tags": [
+        "mysql",
+        "database",
+        "sql"
+      ],
+      "note": {
+        "zh": "示例：自定义市场源里的 MySQL 预设。建议用只读账号；DBHub 也支持 --readonly。",
+        "en": "Example MySQL preset in a custom market source. Prefer a read-only account; DBHub also supports --readonly."
+      }
+    },
+    {
+      "id": "demo-everything",
+      "serverName": "demo-everything",
+      "displayName": {
+        "zh": "Everything 演示",
+        "en": "Everything Demo"
+      },
+      "tagline": {
+        "zh": "用官方参考服务器验证连通性",
+        "en": "Validate connectivity with the official reference server"
+      },
+      "description": {
+        "zh": "自定义市场源示例：官方 Everything 参考服务器，用来验证市场源安装、工具列表与 smoke。",
+        "en": "Custom-source example: the official Everything reference server to validate source install, tool listing and smoke."
+      },
+      "category": "dev",
+      "transport": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-everything"
+      ],
+      "env": {
+        "npm_config_cache": "{{dshHome}}/mcp-station/npm-cache"
+      },
+      "requires": {
+        "node": true
+      },
+      "risk": {
+        "level": "medium",
+        "reasons": [
+          {
+            "zh": "get-env 会返回进程环境变量",
+            "en": "get-env returns the process environment"
+          },
+          {
+            "zh": "仅用于测试",
+            "en": "Testing-only"
+          }
+        ]
+      },
+      "docs": "https://github.com/modelcontextprotocol/servers/tree/main/src/everything",
+      "tags": [
+        "testing",
+        "reference"
+      ],
+      "smoke": {
+        "tool": "echo",
+        "args": {
+          "message": "custom-source-ok"
+        },
+        "expectContains": "custom-source-ok"
+      },
+      "note": {
+        "zh": "示例：无 key 预设 + smoke 的写法。",
+        "en": "Example: a key-free preset with a smoke."
+      }
+    },
+    {
+      "id": "tavily-search",
+      "serverName": "tavily-search",
+      "displayName": {
+        "zh": "Tavily 搜索（自定义）",
+        "en": "Tavily Search (custom)"
+      },
+      "tagline": {
+        "zh": "远程 Streamable HTTP 市场源示例",
+        "en": "Remote Streamable HTTP example"
+      },
+      "description": {
+        "zh": "自定义市场源示例：远程 streamable-http 端点，key 通过 {{input}} 模板拼进 URL。",
+        "en": "Custom-source example: a remote streamable-http endpoint with the key templated into the URL."
+      },
+      "category": "search",
+      "transport": "streamable-http",
+      "url": "https://mcp.tavily.com/mcp/?tavilyApiKey={{TAVILY_API_KEY}}",
+      "inputs": [
+        {
+          "key": "TAVILY_API_KEY",
+          "label": {
+            "zh": "Tavily API Key",
+            "en": "Tavily API Key"
+          },
+          "description": {
+            "zh": "从 tavily.com 获取；会随 URL 写入 profile",
+            "en": "Get one at tavily.com; stored in the profile inside the URL"
+          },
+          "kind": "secret",
+          "required": true
+        }
+      ],
+      "requires": {
+        "apiKey": true
+      },
+      "risk": {
+        "level": "medium",
+        "reasons": [
+          {
+            "zh": "查询内容会发送到 Tavily 云端",
+            "en": "Queries are sent to Tavily’s cloud"
+          },
+          {
+            "zh": "API key 会写入本机配置",
+            "en": "The API key is stored locally"
+          }
+        ]
+      },
+      "docs": "https://docs.tavily.com/documentation/mcp",
+      "tags": [
+        "search",
+        "remote"
+      ],
+      "note": {
+        "zh": "示例：远程 URL 预设（无需 npx）；注意当前 schema 不支持 HTTP headers，需要 Authorization 的远程服务无法用这种方式表达。",
+        "en": "Example of a remote URL preset (no npx). Note the current schema has no HTTP headers, so remotes that need Authorization cannot be expressed this way."
+      }
+    }
+  ]
+}

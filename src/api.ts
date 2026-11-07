@@ -4,18 +4,15 @@
  * or non-browser request.
  */
 
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Context } from '@deepseek-ai/cordis'
-import {
-  findPreset,
-  findPresetForServer,
-  loadCatalog,
-  resolvePresetRow,
-  uniqueServerName,
-} from './catalog.ts'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { findPresetForServer, loadCatalog, resolvePresetRow } from './catalog.ts'
 import type { TemplateVars } from './catalog.ts'
 import type { Config } from './index.ts'
+import { Market, MarketError } from './market.ts'
 import { callStdioTool, probeHttp, probeStdio, resolveEnvValues } from './mcp/probe.ts'
 import type { ProbeOutcome } from './mcp/probe.ts'
 import {
@@ -38,18 +35,27 @@ import type {
   ApiResponse,
   CatalogFile,
   CatalogPayload,
+  CatalogPreset,
   CustomServerPayload,
+  DisplayLanguage,
   DoctorCheck,
   DoctorPayload,
   ImportPayload,
   ImportSkipped,
   InstallPayload,
   InstalledServer,
+  MarketBrowsePayload,
+  MarketSource,
+  MarketSourceInput,
+  MarketSourcePayload,
+  MarketSourcesPayload,
   McpTransport,
   ProbePayload,
   ProbeResult,
   RemovePayload,
+  RemoveSourcePayload,
   ServersPayload,
+  SettingsPayload,
   SmokePayload,
   SmokeResult,
   StationStatus,
@@ -63,6 +69,26 @@ const DEFAULT_PROBE_TIMEOUT_MS = 90_000
 
 type StationPaths = ReturnType<typeof resolveStationPaths>
 type ProbeCacheEntry = { result: ProbeResult; at: number }
+
+const moduleDir = dirname(fileURLToPath(import.meta.url))
+let pluginVersionCache: string | undefined
+
+/** Read the plugin version from its package.json at runtime. */
+function pluginVersion(): string {
+  if (pluginVersionCache !== undefined) return pluginVersionCache
+  try {
+    const raw = readFileSync(join(moduleDir, '..', 'package.json'), 'utf8')
+    const parsed = JSON.parse(raw) as { version?: unknown }
+    if (typeof parsed.version === 'string' && parsed.version !== '') {
+      pluginVersionCache = parsed.version
+      return pluginVersionCache
+    }
+  } catch {
+    // Fall through to the documented fallback.
+  }
+  pluginVersionCache = 'unknown'
+  return pluginVersionCache
+}
 
 /** API failure carrying one HTTP status and a stable machine code. */
 class ApiError extends Error {
@@ -396,10 +422,37 @@ function importCandidateToRow(candidate: ImportCandidate): ImportRowResult {
   }
 }
 
+
+/** Validate and normalize the POST /sources body. */
+function parseSourceInput(body: Record<string, unknown>): MarketSourceInput {
+  const input: MarketSourceInput = {}
+  const id = optionalString(body, 'id')
+  const name = optionalString(body, 'name')
+  const url = optionalString(body, 'url')
+  const enabled = optionalBoolean(body, 'enabled')
+  const language = optionalString(body, 'language')
+  if (id !== undefined && id !== '') input.id = id
+  if (name !== undefined && name !== '') input.name = name
+  if (url !== undefined && url !== '') input.url = url
+  if (enabled !== undefined) input.enabled = enabled
+  if (language !== undefined && language !== '') {
+    if (language !== 'auto' && language !== 'zh' && language !== 'en') {
+      throw new ApiError(400, 'invalid-request', 'language 必须是 auto/zh/en')
+    }
+    input.language = language as DisplayLanguage
+  }
+  if (body.headers !== undefined && body.headers !== null) {
+    input.headers = stringRecord(body.headers, 'headers')
+  }
+  return input
+}
+
 /** Optional collaborators used by tests and managed deployments. */
 export interface ApiDependencies {
   /** Override the MCP probe used by /servers/test and install-with-test. */
   probeRow?: (row: PatchRow) => Promise<ProbeResult>
+  /** Provide a preconfigured market instance (tests inject accelerated limits). */
+  market?: Market
 }
 
 function toProbeResult(outcome: ProbeOutcome): ProbeResult {
@@ -431,19 +484,36 @@ export function makeApiHandler(
   const resolvePaths = (): StationPaths =>
     resolveStationPaths({ dshHome: config.dshHome, profile: config.profile, workspace: config.workspace })
 
+  const markets = new Map<string, Market>()
+
+  function marketFor(paths: StationPaths): Market {
+    if (dependencies.market !== undefined) return dependencies.market
+    const existing = markets.get(paths.dshHome)
+    if (existing !== undefined) return existing
+    const created = new Market({ dshHome: paths.dshHome })
+    markets.set(paths.dshHome, created)
+    return created
+  }
+
+  function mapMarketError(error: unknown): ApiError {
+    if (error instanceof MarketError) return new ApiError(error.status, error.code, error.message)
+    return new ApiError(500, 'market', errorMessage(error))
+  }
+
+  async function mergedCatalog(refresh: boolean): Promise<{ catalog: CatalogFile; sources: MarketSource[] }> {
+    const paths = resolvePaths()
+    try {
+      return await marketFor(paths).catalog({ refresh })
+    } catch (error) {
+      throw mapMarketError(error)
+    }
+  }
+
   async function readRows(): Promise<{ paths: StationPaths; text: string; rows: PatchRow[] }> {
     const paths = resolvePaths()
     const { text } = await readPatchText(paths.patchPath)
     const rows = parsePatchRows(text)
     return { paths, text, rows }
-  }
-
-  async function loadCatalogOrFail(): Promise<CatalogFile> {
-    try {
-      return await loadCatalog()
-    } catch (error) {
-      throw new ApiError(500, 'catalog', '内置预设目录读取失败: ' + errorMessage(error))
-    }
   }
 
   function withRuntime(server: InstalledServer, entry: ProbeCacheEntry | undefined): InstalledServer {
@@ -462,7 +532,7 @@ export function makeApiHandler(
 
   async function listServers(): Promise<InstalledServer[]> {
     const { rows } = await readRows()
-    const catalog = await loadCatalogOrFail()
+    const { catalog } = await mergedCatalog(false)
     return rows.map((row) => withRuntime(installedFromServer(row, catalog), probeCache.get(row.serverName)))
   }
 
@@ -520,8 +590,94 @@ export function makeApiHandler(
     return stored
   }
 
+  async function handleListSources(): Promise<MarketSourcesPayload> {
+    const paths = resolvePaths()
+    try {
+      return { sources: await marketFor(paths).listSources() }
+    } catch (error) {
+      throw mapMarketError(error)
+    }
+  }
+
+  async function handleSaveSource(body: Record<string, unknown>): Promise<MarketSourcePayload> {
+    const input = parseSourceInput(body)
+    const paths = resolvePaths()
+    try {
+      return { source: await marketFor(paths).saveSource(input) }
+    } catch (error) {
+      throw mapMarketError(error)
+    }
+  }
+
+  async function handleDeleteSource(id: string): Promise<RemoveSourcePayload> {
+    if (id === '') throw new ApiError(400, 'invalid-request', '缺少查询参数 id')
+    const paths = resolvePaths()
+    try {
+      return { removed: await marketFor(paths).deleteSource(id) }
+    } catch (error) {
+      throw mapMarketError(error)
+    }
+  }
+
+  async function handleRefreshSources(body: Record<string, unknown>): Promise<MarketSourcesPayload> {
+    const id = optionalString(body, 'id')
+    const paths = resolvePaths()
+    try {
+      return { sources: await marketFor(paths).refreshSources(id) }
+    } catch (error) {
+      throw mapMarketError(error)
+    }
+  }
+
+  async function handleGetSettings(): Promise<SettingsPayload> {
+    const paths = resolvePaths()
+    try {
+      return { settings: await marketFor(paths).getSettings() }
+    } catch (error) {
+      throw mapMarketError(error)
+    }
+  }
+
+  async function handleSaveSettings(body: Record<string, unknown>): Promise<SettingsPayload> {
+    const paths = resolvePaths()
+    const market = marketFor(paths)
+    if (body.displayLanguage === undefined) {
+      try {
+        return { settings: await market.getSettings() }
+      } catch (error) {
+        throw mapMarketError(error)
+      }
+    }
+    try {
+      return { settings: await market.saveSettings({ displayLanguage: body.displayLanguage }) }
+    } catch (error) {
+      throw mapMarketError(error)
+    }
+  }
+
+  async function handleMarket(url: URL): Promise<MarketBrowsePayload> {
+    const search = url.searchParams.get('search') ?? undefined
+    const source = url.searchParams.get('source') ?? undefined
+    const cursor = url.searchParams.get('cursor') ?? undefined
+    const limitText = url.searchParams.get('limit')
+    let limit: number | undefined
+    if (limitText !== null && limitText !== '') {
+      const parsed = Number(limitText)
+      if (!Number.isInteger(parsed) || parsed < 1 || parsed > 100) {
+        throw new ApiError(400, 'invalid-request', 'limit 必须是 1-100 的整数')
+      }
+      limit = parsed
+    }
+    const paths = resolvePaths()
+    try {
+      return await marketFor(paths).browse({ search, source, cursor, limit })
+    } catch (error) {
+      throw mapMarketError(error)
+    }
+  }
+
   async function handleStatus(): Promise<StationStatus> {
-    const catalog = await loadCatalogOrFail()
+    const { catalog, sources } = await mergedCatalog(false)
     const paths = resolvePaths()
     const { text } = await readPatchText(paths.patchPath)
     const warnings: string[] = []
@@ -540,8 +696,13 @@ export function makeApiHandler(
     }
     const chrome = detectChrome()
     if (!chrome.available) warnings.push('未检测到本地 Chrome/Chromium，浏览器预设可能无法启动')
+    for (const source of sources) {
+      if (source.status === 'error') {
+        warnings.push('市场源 ' + source.name + ' 不可用: ' + (source.error ?? 'unknown'))
+      }
+    }
     return {
-      pluginVersion: '0.1.0',
+      pluginVersion: pluginVersion(),
       dshVersion: detectDshVersion(),
       profile: paths.profile,
       profileDir: paths.profileDir,
@@ -557,11 +718,12 @@ export function makeApiHandler(
   }
 
   async function handleCatalog(): Promise<CatalogPayload> {
-    const catalog = await loadCatalogOrFail()
+    const { catalog, sources } = await mergedCatalog(true)
     const { rows } = await readRows()
     return {
       catalog,
       servers: rows.map((row) => withRuntime(installedFromServer(row, catalog), probeCache.get(row.serverName))),
+      sources,
     }
   }
 
@@ -570,7 +732,7 @@ export function makeApiHandler(
   }
 
   async function handleCustomCreate(body: Record<string, unknown>): Promise<CustomServerPayload> {
-    const catalog = await loadCatalogOrFail()
+    const { catalog } = await mergedCatalog(false)
     const { paths, text, rows } = await readRows()
     const row = parseCustomRow(body)
     const taken = rows.map((item) => item.serverName.toLowerCase())
@@ -593,7 +755,7 @@ export function makeApiHandler(
 
   async function handleCustomUpdate(body: Record<string, unknown>): Promise<CustomServerPayload> {
     const serverName = requireString(body, 'serverName')
-    const catalog = await loadCatalogOrFail()
+    const { catalog } = await mergedCatalog(false)
     const { paths, text, rows } = await readRows()
     const station = rows.find((item) => item.origin === 'station' && item.serverName === serverName)
     if (station === undefined) {
@@ -624,7 +786,7 @@ export function makeApiHandler(
       throw new ApiError(400, 'invalid-json', 'json 字段不是合法的 JSON 文本')
     }
     const collection = collectImportCandidates(parsed)
-    const catalog = await loadCatalogOrFail()
+    const { catalog } = await mergedCatalog(false)
     const { paths, text, rows } = await readRows()
     const taken = new Set(rows.map((item) => item.serverName.toLowerCase()))
     const accepted: ManagedRowInput[] = []
@@ -657,13 +819,17 @@ export function makeApiHandler(
 
   async function handleInstall(body: Record<string, unknown>): Promise<InstallPayload> {
     const presetId = requireString(body, 'presetId')
+    const sourceId = optionalString(body, 'sourceId')
     const requestedName = optionalString(body, 'serverName')
     const values = stringRecord(body.values, 'values')
     const shouldTest = optionalBoolean(body, 'test') === true
-    const catalog = await loadCatalogOrFail()
-    const preset = findPreset(catalog, presetId)
-    if (preset === undefined) throw new ApiError(404, 'not-found', '未知预设: ' + presetId)
     const { paths, text, rows } = await readRows()
+    let preset: CatalogPreset
+    try {
+      preset = await marketFor(paths).findPreset(presetId, sourceId)
+    } catch (error) {
+      throw mapMarketError(error)
+    }
     const vars: TemplateVars = {
       workspace: paths.workspace,
       dshHome: paths.dshHome,
@@ -677,16 +843,16 @@ export function makeApiHandler(
     }
     const taken = rows.map((item) => item.serverName)
     const explicitName = requestedName !== undefined && requestedName !== ''
-    let serverName = explicitName ? requestedName! : preset.serverName
+    const serverName = explicitName ? requestedName! : preset.serverName
     if (!isValidServerName(serverName)) {
       throw new ApiError(400, 'invalid-input', 'serverName 必须是 1-32 位字母、数字、下划线或连字符')
     }
-    if (explicitName) {
-      if (taken.some((name) => name.toLowerCase() === serverName.toLowerCase())) {
-        throw new ApiError(409, 'conflict', 'serverName 已存在: ' + serverName)
-      }
-    } else {
-      serverName = uniqueServerName(serverName, taken)
+    if (taken.some((name) => name.toLowerCase() === serverName.toLowerCase())) {
+      throw new ApiError(
+        409,
+        'conflict',
+        'serverName 冲突: 已存在 MCP server "' + serverName + '"，请先删除或改用一个不同的 serverName',
+      )
     }
     row.serverName = serverName
     row.id = MANAGED_ID_PREFIX + serverName
@@ -711,7 +877,12 @@ export function makeApiHandler(
       (item) => item.origin === 'station' && item.serverName === serverName,
     )
     if (stored === undefined) throw new ApiError(500, 'patch-invalid', '写入后找不到新行: ' + serverName)
+    const { catalog } = await mergedCatalog(false)
     const server = installedFromServer(stored, catalog)
+    server.presetId = preset.id
+    server.displayName = preset.displayName
+    if (preset.sourceId !== undefined) server.sourceId = preset.sourceId
+    if (preset.sourceName !== undefined) server.sourceName = preset.sourceName
     if (!shouldTest) return { server }
     const result = await probeRow(stored)
     probeCache.set(serverName, { result, at: Date.now() })
@@ -732,7 +903,7 @@ export function makeApiHandler(
   async function handleToggle(body: Record<string, unknown>): Promise<TogglePayload> {
     const serverName = requireString(body, 'serverName')
     const enabled = requireBoolean(body, 'enabled')
-    const catalog = await loadCatalogOrFail()
+    const { catalog } = await mergedCatalog(false)
     const { paths, text, rows } = await readRows()
     locateRow(rows, serverName)
     let next: string
@@ -775,7 +946,7 @@ export function makeApiHandler(
     const serverName = requireString(body, 'serverName')
     const overrideTool = optionalString(body, 'tool')
     const overrideArgs = optionalRecord(body.args, 'args')
-    const catalog = await loadCatalogOrFail()
+    const { catalog } = await mergedCatalog(false)
     const { rows } = await readRows()
     const matches = rows.filter((row) => row.serverName === serverName)
     const row = matches.find((item) => item.origin === 'station') ?? matches[0]
@@ -978,6 +1149,18 @@ export function makeApiHandler(
           sendData(res, await handleDoctor())
           return
         }
+        if (route === '/market') {
+          sendData(res, await handleMarket(url))
+          return
+        }
+        if (route === '/sources') {
+          sendData(res, await handleListSources())
+          return
+        }
+        if (route === '/settings') {
+          sendData(res, await handleGetSettings())
+          return
+        }
         throw new ApiError(404, 'not-found', '未知路由: GET ' + route)
       }
       if (method === 'POST') {
@@ -1010,11 +1193,27 @@ export function makeApiHandler(
           sendData(res, await handleSmoke(body))
           return
         }
+        if (route === '/sources') {
+          sendData(res, await handleSaveSource(body))
+          return
+        }
+        if (route === '/sources/refresh') {
+          sendData(res, await handleRefreshSources(body))
+          return
+        }
+        if (route === '/settings') {
+          sendData(res, await handleSaveSettings(body))
+          return
+        }
         throw new ApiError(404, 'not-found', '未知路由: POST ' + route)
       }
       if (method === 'DELETE') {
         if (route === '/servers') {
           sendData(res, await handleDelete(url.searchParams.get('name') ?? ''))
+          return
+        }
+        if (route === '/sources') {
+          sendData(res, await handleDeleteSource(url.searchParams.get('id') ?? ''))
           return
         }
         throw new ApiError(404, 'not-found', '未知路由: DELETE ' + route)

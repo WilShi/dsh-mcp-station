@@ -132,6 +132,26 @@ describe('resolvePresetRow', () => {
     expect(row.args).toEqual(['-y', '@modelcontextprotocol/server-filesystem', '/projects/app'])
   })
 
+
+  it('resolves streamable-http preset headers with env refs and templates', () => {
+    const preset: CatalogPreset = {
+      id: 'remote-header-preset',
+      serverName: 'remote-header-preset',
+      displayName: { zh: 'x', en: 'x' },
+      tagline: { zh: 'x', en: 'x' },
+      description: { zh: 'x', en: 'x' },
+      category: 'dev',
+      transport: 'streamable-http',
+      url: 'https://example.com/mcp',
+      headers: { Authorization: 'env:MCP_TOKEN', 'X-Workspace': '{{workspace}}' },
+      risk: { level: 'low', reasons: [] },
+    }
+    const row = resolvePresetRow(preset, undefined, VARS)
+    expect(row.transport).toBe('streamable-http')
+    expect(row.url).toBe('https://example.com/mcp')
+    expect(row.headers).toEqual({ Authorization: 'env:MCP_TOKEN', 'X-Workspace': '/workspace/demo' })
+  })
+
   it('renders a streamable-http URL with the provided secret', async () => {
     const tavily = await presetOf('tavily')
     const row = resolvePresetRow(tavily, { TAVILY_API_KEY: 'tvly-demo' }, VARS)

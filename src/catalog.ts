@@ -164,5 +164,16 @@ export function resolvePresetRow(
     }
     if (Object.keys(env).length > 0) row.env = env
   }
+  if (preset.headers !== undefined) {
+    const headers: PatchEnv = {}
+    for (const [key, value] of Object.entries(preset.headers)) {
+      if (ENV_REF_RE.test(value)) {
+        headers[key] = value
+        continue
+      }
+      headers[key] = mustResolve('headers.' + key, value, scope)
+    }
+    if (Object.keys(headers).length > 0) row.headers = headers
+  }
   return row
 }

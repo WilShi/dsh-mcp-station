@@ -7,6 +7,7 @@
 import { useMemo, useState, type JSX } from 'react'
 import type { CustomServerRequest, InstalledServer, McpTransport, ProbeResult } from '../shared/types.ts'
 import { createCustomServer, errorMessage, updateCustomServer } from './api.ts'
+import { formatPairs, isHttpUrl, parseArgs, parsePairs } from './parse.ts'
 import { Badge, Modal, Spinner, type TFunc } from './ui.tsx'
 
 /** Options handed to the save callback. */
@@ -32,68 +33,6 @@ type Phase = 'idle' | 'saving' | 'testing'
 
 const NAME_PATTERN = /^[A-Za-z0-9_-]{1,32}$/
 
-interface PairParse {
-  map: Record<string, string>
-  /** 1-based line number of the first malformed line, 0 when valid. */
-  errorLine: number
-  /** Raw values that still look like a disk-only `!!js` expression. */
-  jsValues: string[]
-}
-
-function toEditableValue(value: string): string {
-  const match = /^!!js\s+process\.env\.([A-Za-z_][A-Za-z0-9_]*)$/.exec(value)
-  return match === null ? value : 'env:' + (match[1] ?? '')
-}
-
-function formatPairs(map: Record<string, string> | undefined): string {
-  if (map === undefined) return ''
-  return Object.entries(map)
-    .map(([key, value]) => key + '=' + toEditableValue(value))
-    .join('\n')
-}
-
-function parsePairs(text: string): PairParse {
-  const map: Record<string, string> = {}
-  const jsValues: string[] = []
-  const lines = text.split(/\r?\n/)
-  for (let index = 0; index < lines.length; index += 1) {
-    const line = (lines[index] ?? '').trim()
-    if (line === '' || line.startsWith('#')) continue
-    const equals = line.indexOf('=')
-    if (equals <= 0) return { map: {}, errorLine: index + 1, jsValues: [] }
-    const key = line.slice(0, equals).trim()
-    if (key === '') return { map: {}, errorLine: index + 1, jsValues: [] }
-    let value = line.slice(equals + 1).trim()
-    if (value.length >= 2) {
-      const first = value.charAt(0)
-      const last = value.charAt(value.length - 1)
-      if ((first === '"' && last === '"') || (first === "'" && last === "'")) value = value.slice(1, -1)
-    }
-    if (value.startsWith('!!js ')) jsValues.push(value)
-    map[key] = value
-  }
-  return { map, errorLine: 0, jsValues }
-}
-
-function parseArgs(text: string): string[] {
-  const lines = text
-    .split(/\r?\n/)
-    .map(line => line.trim())
-    .filter(line => line !== '')
-  if (lines.length === 1) {
-    return (lines[0] ?? '').split(/\s+/).filter(token => token !== '')
-  }
-  return lines
-}
-
-function isHttpUrl(value: string): boolean {
-  try {
-    const parsed = new URL(value)
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
-  } catch {
-    return false
-  }
-}
 
 /** Add or edit one custom MCP server. */
 export function CustomServerDialog(props: CustomServerDialogProps): JSX.Element {

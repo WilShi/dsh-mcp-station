@@ -81,6 +81,26 @@ probe "/mcp-station/api/servers"
 echo "=== 6e. install with auto test ==="
 curl -s -m 120 -X POST "http://127.0.0.1:$PORT/mcp-station/api/servers/install" -H "content-type: application/json" -d "{\"presetId\":\"memory\",\"test\":true}" | head -c 550; echo
 probe "/mcp-station/api/servers"
+echo "=== 6f. settings: display language ==="
+curl -s -m 30 -X POST "http://127.0.0.1:$PORT/mcp-station/api/settings" -H "content-type: application/json" -d "{\"displayLanguage\":\"en\"}" | head -c 300; echo
+curl -s -m 10 "http://127.0.0.1:$PORT/mcp-station/api/settings" | head -c 300; echo
+
+echo "=== 6g. custom market source (local HTTP) ==="
+node -e "const http=require('http');const fs=require('fs');const p='docs/market-source.example.json';http.createServer((q,r)=>{r.setHeader('content-type','application/json');r.end(fs.readFileSync(p))}).listen(49811,'127.0.0.1')" >/tmp/mcp-station-source.log 2>&1 &
+SRC_PID=$!
+sleep 1
+curl -s -m 30 -X POST "http://127.0.0.1:$PORT/mcp-station/api/sources" -H "content-type: application/json" -d "{\"url\":\"http://127.0.0.1:49811/market-source.example.json\",\"name\":\"Demo Source\"}" -o e2e/source-add.json; head -c 400 e2e/source-add.json; echo
+SRC=$(node -e "const j=require('./e2e/source-add.json');process.stdout.write((j.data&&j.data.source&&j.data.source.id)||'')")
+echo "source id: $SRC"
+probe "/mcp-station/api/sources"
+curl -s -m 30 "http://127.0.0.1:$PORT/mcp-station/api/market?source=$SRC&limit=20" | head -c 700; echo
+echo "=== 6h. official registry market search ==="
+curl -s -m 60 "http://127.0.0.1:$PORT/mcp-station/api/market?search=filesystem&source=mcp-registry&limit=5" | head -c 1200; echo
+echo "=== 6i. install from custom source ==="
+curl -s -m 120 -X POST "http://127.0.0.1:$PORT/mcp-station/api/servers/install" -H "content-type: application/json" -d "{\"presetId\":\"demo-everything\",\"sourceId\":\"$SRC\",\"test\":true}" | head -c 600; echo
+probe "/mcp-station/api/servers"
+kill $SRC_PID 2>/dev/null
+curl -s -m 20 -X POST "http://127.0.0.1:$PORT/mcp-station/api/settings" -H "content-type: application/json" -d "{\"displayLanguage\":\"zh\"}" >/dev/null; echo
 echo "=== 7. UI screenshots"
 node "$PROJ/e2e/shot.cjs" "$URL" "$SHOTS" 2>&1 | tail -20
 

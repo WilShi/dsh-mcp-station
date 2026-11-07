@@ -10,17 +10,26 @@
 import type {
   ApiResponse,
   CatalogPayload,
+  CatalogPreset,
   CustomServerPayload,
   CustomServerRequest,
+  DisplayLanguage,
   DoctorPayload,
   ImportPayload,
   InstallPayload,
   InstallRequest,
   InstalledServer,
+  MarketBrowsePayload,
+  MarketSource,
+  MarketSourceInput,
+  MarketSourcePayload,
+  MarketSourcesPayload,
   ProbePayload,
   ProbeResult,
   RemovePayload,
+  RemoveSourcePayload,
   ServersPayload,
+  SettingsPayload,
   StationStatus,
   TogglePayload,
   ToggleRequest,
@@ -107,6 +116,27 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return body.data
 }
 
+// ---------------------------------------------------------------------------
+// Market (0.2.0): GET /market returns full presets tagged with their source.
+// ---------------------------------------------------------------------------
+
+/** Query parameters of GET /market. */
+export interface MarketQuery {
+  search?: string
+  /** MarketSource id: `builtin`, `mcp-registry` or a custom source id. */
+  source?: string
+  cursor?: string
+  limit?: number
+}
+
+/**
+ * Whether a source ships with the plugin.
+ * @param source - source row.
+ */
+export function isBuiltinSource(source: MarketSource): boolean {
+  return source.builtin || source.id === 'builtin' || source.id === 'mcp-registry'
+}
+
 /**
  * Merge a probe result into an installed row.
  * @param server - row to update.
@@ -150,6 +180,51 @@ export function fetchDoctor(): Promise<DoctorPayload> {
 /** POST /servers/install — write one managed row (optionally probed). */
 export function installServer(body: InstallRequest): Promise<InstallPayload> {
   return request<InstallPayload>('/servers/install', { method: 'POST', body: JSON.stringify(body) })
+}
+
+/** GET /settings — display language preference. */
+export function fetchSettings(): Promise<SettingsPayload> {
+  return request<SettingsPayload>('/settings')
+}
+
+/** POST /settings — patch the durable station settings. */
+export function saveSettings(patch: { displayLanguage?: DisplayLanguage }): Promise<SettingsPayload> {
+  return request<SettingsPayload>('/settings', { method: 'POST', body: JSON.stringify(patch) })
+}
+
+/** GET /sources — market sources with their health. */
+export function fetchSources(): Promise<MarketSourcesPayload> {
+  return request<MarketSourcesPayload>('/sources')
+}
+
+/** POST /sources — create a source, or upsert the one whose id is passed. */
+export function saveSource(body: MarketSourceInput): Promise<MarketSourcePayload> {
+  return request<MarketSourcePayload>('/sources', { method: 'POST', body: JSON.stringify(body) })
+}
+
+/** DELETE /sources?id= — remove one custom market source. */
+export function deleteSource(id: string): Promise<RemoveSourcePayload> {
+  return request<RemoveSourcePayload>('/sources?id=' + encodeURIComponent(id), { method: 'DELETE' })
+}
+
+/** POST /sources/refresh — refresh one source or every enabled source. */
+export function refreshSources(id?: string): Promise<MarketSourcesPayload> {
+  const body: { id?: string } = id === undefined ? {} : { id }
+  return request<MarketSourcesPayload>('/sources/refresh', { method: 'POST', body: JSON.stringify(body) })
+}
+
+/**
+ * GET /market — search and browse every enabled market source.
+ * @param query - search text, source filter and opaque cursor.
+ */
+export function fetchMarket(query: MarketQuery): Promise<MarketBrowsePayload> {
+  const params = new URLSearchParams()
+  if (query.search !== undefined && query.search !== '') params.set('search', query.search)
+  if (query.source !== undefined && query.source !== '') params.set('source', query.source)
+  if (query.cursor !== undefined && query.cursor !== '') params.set('cursor', query.cursor)
+  if (query.limit !== undefined) params.set('limit', String(query.limit))
+  const suffix = params.toString() === '' ? '' : '?' + params.toString()
+  return request<MarketBrowsePayload>('/market' + suffix)
 }
 
 /** POST /servers/custom — write one custom stdio or HTTP server row. */

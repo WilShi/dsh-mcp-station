@@ -60,6 +60,8 @@ export interface CatalogPreset {
    * - anything else — literal string.
    */
   env?: Record<string, string>
+  /** Extra HTTP headers for streamable-http servers; values support `env:NAME`. */
+  headers?: Record<string, string>
   inputs?: PresetInput[]
   requires?: {
     /** Needs a Chrome/Chromium-family browser on this machine. */
@@ -75,12 +77,78 @@ export interface CatalogPreset {
   smoke?: PresetSmoke
   /** Short note shown in the install dialog (localized). */
   note?: LocalizedText
+  /** Merged catalog only: market source this preset came from. */
+  sourceId?: string
+  /** Merged catalog only: display name of the market source. */
+  sourceName?: string
+  /** Merged catalog only: stable identity `sourceId:preset.id`. */
+  uid?: string
 }
 
 export interface CatalogFile {
   version: number
   updated: string
   presets: CatalogPreset[]
+}
+
+/** Language setting shared by the host and the web client. */
+export type DisplayLanguage = 'auto' | 'zh' | 'en'
+
+/** Fetch state of one market source. */
+export type SourceStatus = 'ok' | 'unknown' | 'error' | 'disabled'
+
+/** One market source: the builtin catalog or a persisted custom/remote source. */
+export interface MarketSource {
+  id: string
+  name: string
+  /** True for the bundled catalog; read-only. */
+  builtin: boolean
+  enabled: boolean
+  url?: string
+  language?: DisplayLanguage
+  /** Extra headers sent when fetching a remote source. */
+  headers?: Record<string, string>
+  status: SourceStatus
+  error?: string
+  /** ISO time of the last successful fetch. */
+  lastFetchedAt?: string
+  /** Number of presets currently cached from this source. */
+  entryCount: number
+}
+
+/** One installable catalog entry in the merged market view. */
+export type MarketItem = CatalogPreset & {
+  sourceId: string
+  sourceName: string
+  /** Stable identity: sourceId + ':' + preset.id. */
+  uid: string
+}
+
+/** Data returned by GET /market. */
+export interface MarketBrowsePayload {
+  items: MarketItem[]
+  /** Opaque cursor; pass back as-is to fetch the next page. */
+  nextCursor?: string
+  sources: MarketSource[]
+  /** Non-fatal source errors that did not block the page. */
+  warnings?: string[]
+}
+
+/** Body of POST /sources: add a source, or update one by id. */
+export interface MarketSourceInput {
+  /** Stable source id; omitted on create to generate one. */
+  id?: string
+  name?: string
+  /** Required on create; omitted on update keeps the previous URL. */
+  url?: string
+  enabled?: boolean
+  language?: DisplayLanguage
+  headers?: Record<string, string>
+}
+
+/** Host settings persisted under DSH Home. */
+export interface StationSettings {
+  displayLanguage: DisplayLanguage
 }
 
 export interface ToolSummary {
@@ -94,6 +162,9 @@ export interface ToolSummary {
 export interface InstalledServer {
   serverName: string
   presetId?: string
+  /** Market source of the matched preset (merged catalog), when known. */
+  sourceId?: string
+  sourceName?: string
   transport: McpTransport
   command?: string
   args?: string[]
@@ -163,6 +234,8 @@ export interface DoctorCheck {
 
 export interface InstallRequest {
   presetId: string
+  /** Market source id; omit to use the builtin catalog first. */
+  sourceId?: string
   /** Override the preset serverName (must be unique). */
   serverName?: string
   values?: Record<string, string>
@@ -229,8 +302,30 @@ export type ApiResponse<T> =
 
 /** Route payloads. */
 export interface CatalogPayload {
+  /** Merged presets from every enabled source; each carries sourceId/sourceName/uid. */
   catalog: CatalogFile
   servers: InstalledServer[]
+  sources: MarketSource[]
+}
+
+/** Data returned by GET /sources and POST /sources/refresh. */
+export interface MarketSourcesPayload {
+  sources: MarketSource[]
+}
+
+/** Data returned by POST /sources. */
+export interface MarketSourcePayload {
+  source: MarketSource
+}
+
+/** Data returned by DELETE /sources. */
+export interface RemoveSourcePayload {
+  removed: boolean
+}
+
+/** Data returned by GET /settings and POST /settings. */
+export interface SettingsPayload {
+  settings: StationSettings
 }
 
 export interface ServersPayload {

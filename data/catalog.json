@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-11-06",
+  "updated": "2026-11-07",
   "presets": [
     {
       "id": "playwright",
@@ -281,8 +281,8 @@
         "en": "Read repos, issues and PRs; act within token scope"
       },
       "description": {
-        "zh": "MCP 官方 GitHub server（npm 包已归档，版本 2025.4.8，提供 26 个工具）。需要环境变量 GITHUB_PERSONAL_ACCESS_TOKEN（不会写进 profile 配置文件）；未配置时只能匿名调用公开 API。建议用只读或最小权限的 fine-grained token；上游已停止维护，官方替代见 note。",
-        "en": "The official MCP GitHub server (npm package archived, version 2025.4.8, 26 tools). Requires GITHUB_PERSONAL_ACCESS_TOKEN in the environment (never written to the profile patch); without it only anonymous public API calls work. Use a read-only or least-privilege fine-grained token; upstream is archived, see note for the maintained alternative."
+        "zh": "MCP 官方 GitHub server（npm 包已归档，版本 2025.4.8，提供 26 个工具）。需要环境变量 GITHUB_PERSONAL_ACCESS_TOKEN（不会写进 profile 配置文件）；未配置时只能匿名调用公开 API。0.1.x 的稳定性 id 保留，建议用只读或最小权限的 fine-grained token；官方替代见 note。",
+        "en": "The official MCP GitHub server (npm package archived, version 2025.4.8, 26 tools). Requires GITHUB_PERSONAL_ACCESS_TOKEN in the environment (never written to the profile patch); without it only anonymous public API calls work. The id is kept stable for 0.1.x compatibility; use a read-only or least-privilege fine-grained token. See note for the maintained alternative."
       },
       "category": "dev",
       "transport": "stdio",
@@ -323,8 +323,8 @@
         "issues"
       ],
       "note": {
-        "zh": "上游 npm 包已归档（2025.4.8）。官方推荐远程 MCP https://api.githubcopilot.com/mcp/（需要 Authorization 头，当前 catalog schema 不支持 headers）或 Docker 版 ghcr.io/github/github-mcp-server。注意：server 读取的是 GITHUB_PERSONAL_ACCESS_TOKEN；catalog 默认注入 env:GITHUB_PERSONAL_ACCESS_TOKEN。不配置时工具仍可用，但只以匿名身份访问公开数据。",
-        "en": "The npm package is archived (2025.4.8). GitHub recommends the remote MCP at https://api.githubcopilot.com/mcp/ (needs an Authorization header, which the current catalog schema cannot express) or the Docker image ghcr.io/github/github-mcp-server. Note: the server reads GITHUB_PERSONAL_ACCESS_TOKEN; the catalog maps it from the same-named host env var. Without it the tools still work, but only anonymously against public data."
+        "zh": "npm 包已归档（2025.4.8），但为保持 0.1.x preset id 稳定而保留。官方推荐远程 MCP https://api.githubcopilot.com/mcp/（需要 Authorization 头，当前 CatalogPreset schema 不支持 headers）或 Docker 版 ghcr.io/github/github-mcp-server；也可用“自定义服务器/导入”自行配置。注意：server 读取的是 GITHUB_PERSONAL_ACCESS_TOKEN；catalog 默认注入 env:GITHUB_PERSONAL_ACCESS_TOKEN，未配置时仅匿名访问公开数据。",
+        "en": "The npm package is archived (2025.4.8) but retained to keep the 0.1.x preset id stable. GitHub recommends the remote MCP at https://api.githubcopilot.com/mcp/ (needs an Authorization header, which the current CatalogPreset schema cannot express) or the Docker image ghcr.io/github/github-mcp-server; configure either through Custom Server / Import. Note: the server reads GITHUB_PERSONAL_ACCESS_TOKEN; the catalog maps it from the same-named host env var, and without it only anonymous public data is reachable."
       }
     },
     {
@@ -546,6 +546,978 @@
       },
       "env": {
         "npm_config_cache": "{{dshHome}}/mcp-station/npm-cache"
+      }
+    },
+    {
+      "id": "notion",
+      "serverName": "notion",
+      "displayName": {
+        "zh": "Notion 文档",
+        "en": "Notion"
+      },
+      "tagline": {
+        "zh": "查页面、数据库与评论，按 token 权限读写",
+        "en": "Search pages and databases, read comments within token scope"
+      },
+      "description": {
+        "zh": "Notion 官方 MCP server（2.6.1，24 个工具）。用 integration token 访问页面、数据源与评论，并把页面 markdown 转成结构化内容；token 走 NOTION_TOKEN 环境变量，不写进 profile。",
+        "en": "Official Notion MCP server (2.6.1, 24 tools). Access pages, data sources and comments with an integration token and read page markdown; the token is read from NOTION_TOKEN and never written to the profile."
+      },
+      "category": "productivity",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@notionhq/notion-mcp-server"
+      ],
+      "transport": "stdio",
+      "env": {
+        "NOTION_TOKEN": "env:NOTION_TOKEN",
+        "npm_config_cache": "{{dshHome}}/mcp-station/npm-cache"
+      },
+      "requires": {
+        "node": true,
+        "apiKey": true
+      },
+      "risk": {
+        "level": "high",
+        "reasons": [
+          {
+            "zh": "token 权限内的页面与数据库可读，部分工具可写",
+            "en": "Pages and databases within the token scope are readable; some tools can write"
+          },
+          {
+            "zh": "可能接触团队私有文档与评论",
+            "en": "May access private team documents and comments"
+          }
+        ]
+      },
+      "docs": "https://github.com/makenotion/notion-mcp-server",
+      "tags": [
+        "notion",
+        "docs",
+        "notes"
+      ],
+      "note": {
+        "zh": "需要 Notion integration token（ntn_...），并在 Notion 里把目标页面/数据库分享给该 integration；不要用个人账号密码。",
+        "en": "Needs a Notion integration token (ntn_...) and the target pages/databases must be shared with that integration. Never use account passwords."
+      }
+    },
+    {
+      "id": "slack",
+      "serverName": "slack",
+      "displayName": {
+        "zh": "Slack",
+        "en": "Slack"
+      },
+      "tagline": {
+        "zh": "读取频道消息、搜索与发消息（默认关闭发送）",
+        "en": "Read channels, search messages, and optionally post"
+      },
+      "description": {
+        "zh": "Slack MCP server（slack-mcp-server 1.3.0，基于 Go 二进制，下载体积小）。支持频道/消息读取、搜索与发消息；发消息与互动默认关闭，需显式设置环境变量开启。",
+        "en": "Slack MCP server (slack-mcp-server 1.3.0, a small Go binary). Reads channels and messages, searches and optionally posts; posting and reactions are disabled by default and need explicit env flags."
+      },
+      "category": "productivity",
+      "command": "npx",
+      "args": [
+        "-y",
+        "slack-mcp-server"
+      ],
+      "transport": "stdio",
+      "env": {
+        "SLACK_MCP_XOXP_TOKEN": "env:SLACK_MCP_XOXP_TOKEN",
+        "npm_config_cache": "{{dshHome}}/mcp-station/npm-cache"
+      },
+      "requires": {
+        "node": true,
+        "apiKey": true
+      },
+      "risk": {
+        "level": "high",
+        "reasons": [
+          {
+            "zh": "可读取工作区频道与消息内容",
+            "en": "Can read workspace channels and message content"
+          },
+          {
+            "zh": "token/cookie 泄露等同于工作区访问权限",
+            "en": "A leaked token or cookie grants workspace access"
+          },
+          {
+            "zh": "开启写工具后可发消息、加表情",
+            "en": "After enabling write tools it can post messages and add reactions"
+          }
+        ]
+      },
+      "docs": "https://github.com/korotovsky/slack-mcp-server",
+      "tags": [
+        "slack",
+        "chat",
+        "messages"
+      ],
+      "note": {
+        "zh": "需要 SLACK_MCP_XOXP_TOKEN（用户 token），或 SLACK_MCP_XOXC_TOKEN + SLACK_MCP_XOXD_TOKEN 组合。server 启动即校验 token，本次未能取得 tools/list；发消息需另设 SLACK_MCP_ADD_MESSAGE_TOOL。",
+        "en": "Requires SLACK_MCP_XOXP_TOKEN, or SLACK_MCP_XOXC_TOKEN + SLACK_MCP_XOXD_TOKEN. The server verifies the token at startup, so tools/list could not be captured in this run; posting also needs SLACK_MCP_ADD_MESSAGE_TOOL."
+      }
+    },
+    {
+      "id": "linear",
+      "serverName": "linear",
+      "displayName": {
+        "zh": "Linear",
+        "en": "Linear"
+      },
+      "tagline": {
+        "zh": "搜索与维护 issue、项目、周期与团队",
+        "en": "Search and manage issues, projects and cycles"
+      },
+      "description": {
+        "zh": "Linear 社区维护的 MCP server（@tacticlaunch/mcp-linear 1.4.5，198 个工具）。覆盖 issue、项目、路线图、发布、团队与标签的读写，使用 LINEAR_API_TOKEN 或 OAuth token。",
+        "en": "Community Linear MCP server (@tacticlaunch/mcp-linear 1.4.5, 198 tools). Covers issues, projects, roadmaps, releases, teams and labels via LINEAR_API_TOKEN or an OAuth token."
+      },
+      "category": "dev",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@tacticlaunch/mcp-linear"
+      ],
+      "transport": "stdio",
+      "env": {
+        "LINEAR_API_TOKEN": "env:LINEAR_API_TOKEN",
+        "npm_config_cache": "{{dshHome}}/mcp-station/npm-cache"
+      },
+      "requires": {
+        "node": true,
+        "apiKey": true
+      },
+      "risk": {
+        "level": "medium",
+        "reasons": [
+          {
+            "zh": "token 权限内的 issue 与项目可读，部分工具可写",
+            "en": "Issues and projects within the token scope are readable; some tools can write"
+          },
+          {
+            "zh": "可能接触私有项目与成员信息",
+            "en": "May access private projects and member information"
+          }
+        ]
+      },
+      "docs": "https://github.com/tacticlaunch/mcp-linear",
+      "tags": [
+        "linear",
+        "issues",
+        "project"
+      ],
+      "note": {
+        "zh": "需要 Linear API token（LINEAR_API_TOKEN），也支持 --token/--oauth-token 参数。",
+        "en": "Needs a Linear API token (LINEAR_API_TOKEN); --token/--oauth-token are also supported."
+      }
+    },
+    {
+      "id": "gitlab",
+      "serverName": "gitlab",
+      "displayName": {
+        "zh": "GitLab",
+        "en": "GitLab"
+      },
+      "tagline": {
+        "zh": "仓库、MR、Issue 与流水线",
+        "en": "Repos, merge requests, issues and pipelines"
+      },
+      "description": {
+        "zh": "GitLab MCP server（@zereight/mcp-gitlab 2.3.22，默认 40 个工具，可 discover_tools 展开）。覆盖项目、MR、Issue、分支、提交、流水线与 Wiki，适合 gitlab.com 与自建实例。",
+        "en": "GitLab MCP server (@zereight/mcp-gitlab 2.3.22, 40 tools by default with discover_tools expansion). Covers projects, MRs, issues, branches, commits, pipelines and wiki for gitlab.com and self-hosted instances."
+      },
+      "category": "dev",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@zereight/mcp-gitlab"
+      ],
+      "transport": "stdio",
+      "env": {
+        "GITLAB_PERSONAL_ACCESS_TOKEN": "env:GITLAB_PERSONAL_ACCESS_TOKEN",
+        "GITLAB_API_URL": "https://gitlab.com/api/v4",
+        "npm_config_cache": "{{dshHome}}/mcp-station/npm-cache"
+      },
+      "requires": {
+        "node": true,
+        "apiKey": true
+      },
+      "risk": {
+        "level": "high",
+        "reasons": [
+          {
+            "zh": "token 权限内的仓库可读，甚至可写",
+            "en": "Repos within the token scope may be readable or writable"
+          },
+          {
+            "zh": "可创建 MR/Issue 与评论",
+            "en": "Can create MRs, issues and comments"
+          }
+        ]
+      },
+      "docs": "https://github.com/zereight/gitlab-mcp",
+      "tags": [
+        "gitlab",
+        "git",
+        "merge-request"
+      ],
+      "note": {
+        "zh": "需要 GITLAB_PERSONAL_ACCESS_TOKEN；自建 GitLab 把 GITLAB_API_URL 改成 https://<host>/api/v4。默认工具集约 40 个，避免设置 GITLAB_TOOLSETS=all（上下文会膨胀）。",
+        "en": "Needs GITLAB_PERSONAL_ACCESS_TOKEN; for self-hosted GitLab set GITLAB_API_URL to https://<host>/api/v4. Keep the default ~40 tools; avoid GITLAB_TOOLSETS=all (huge context)."
+      }
+    },
+    {
+      "id": "postgres",
+      "serverName": "postgres",
+      "displayName": {
+        "zh": "PostgreSQL",
+        "en": "PostgreSQL"
+      },
+      "tagline": {
+        "zh": "用只读或受控账号查询 Postgres",
+        "en": "Query Postgres with a read-only or scoped account"
+      },
+      "description": {
+        "zh": "DBHub（@bytebase/dbhub 1.5.1，官方示例中的数据库 MCP）。支持 PostgreSQL/MySQL/SQLite 等，默认只加载 execute_sql 与 search_objects 两个工具；建议用只读账号。",
+        "en": "DBHub (@bytebase/dbhub 1.5.1, the database MCP used in official examples). Supports PostgreSQL/MySQL/SQLite and loads just execute_sql + search_objects by default; use a read-only account."
+      },
+      "category": "data",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@bytebase/dbhub",
+        "--transport",
+        "stdio",
+        "--dsn",
+        "{{dsn}}"
+      ],
+      "transport": "stdio",
+      "env": {
+        "npm_config_cache": "{{dshHome}}/mcp-station/npm-cache"
+      },
+      "inputs": [
+        {
+          "key": "dsn",
+          "label": {
+            "zh": "Postgres 连接串",
+            "en": "Postgres DSN"
+          },
+          "description": {
+            "zh": "形如 postgres://user:pass@host:5432/db；会写入本机 profile，建议用只读账号",
+            "en": "e.g. postgres://user:pass@host:5432/db; stored in the local profile, so prefer a read-only account"
+          },
+          "kind": "secret",
+          "required": true
+        }
+      ],
+      "requires": {
+        "node": true,
+        "apiKey": true
+      },
+      "risk": {
+        "level": "high",
+        "reasons": [
+          {
+            "zh": "可执行任意 SQL（含写操作）",
+            "en": "Can execute arbitrary SQL, including writes"
+          },
+          {
+            "zh": "连接串含密码并写入 profile",
+            "en": "The DSN contains a password and is stored in the profile"
+          }
+        ]
+      },
+      "docs": "https://github.com/bytebase/dbhub",
+      "tags": [
+        "postgres",
+        "database",
+        "sql"
+      ],
+      "note": {
+        "zh": "DSN 会写入 profile，建议只读账号与最小权限；DBHub 支持 --readonly/--max-rows 等参数（按需在 args 里追加）。",
+        "en": "The DSN is stored in the profile; prefer a read-only, least-privilege account. DBHub supports --readonly/--max-rows and more (append to args if needed)."
+      }
+    },
+    {
+      "id": "sqlite",
+      "serverName": "sqlite",
+      "displayName": {
+        "zh": "SQLite",
+        "en": "SQLite"
+      },
+      "tagline": {
+        "zh": "查询本地 SQLite 数据库文件",
+        "en": "Query local SQLite database files"
+      },
+      "description": {
+        "zh": "DBHub 的 SQLite 模式（@bytebase/dbhub 1.5.1）。直接连接本地 .sqlite 文件，默认两个工具 execute_sql 与 search_objects；文件不存在时会自动创建。",
+        "en": "DBHub in SQLite mode (@bytebase/dbhub 1.5.1). Connects to a local .sqlite file with execute_sql and search_objects; the file is created when missing."
+      },
+      "category": "data",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@bytebase/dbhub",
+        "--transport",
+        "stdio",
+        "--dsn",
+        "sqlite://{{dbFile}}"
+      ],
+      "transport": "stdio",
+      "env": {
+        "npm_config_cache": "{{dshHome}}/mcp-station/npm-cache"
+      },
+      "inputs": [
+        {
+          "key": "dbFile",
+          "label": {
+            "zh": "SQLite 文件",
+            "en": "SQLite file"
+          },
+          "description": {
+            "zh": "本地数据库文件路径；父目录必须存在",
+            "en": "Local database file; its parent directory must exist"
+          },
+          "kind": "path",
+          "required": true,
+          "default": "{{workspace}}/mcp-station.sqlite"
+        }
+      ],
+      "requires": {
+        "node": true
+      },
+      "risk": {
+        "level": "medium",
+        "reasons": [
+          {
+            "zh": "可读写本地数据库文件",
+            "en": "Can read and write the local database file"
+          },
+          {
+            "zh": "SQL 可修改或删除数据",
+            "en": "SQL can modify or delete data"
+          }
+        ]
+      },
+      "docs": "https://github.com/bytebase/dbhub",
+      "tags": [
+        "sqlite",
+        "database",
+        "sql"
+      ],
+      "smoke": {
+        "tool": "execute_sql",
+        "args": {
+          "sql": "SELECT 1 AS ok"
+        },
+        "expectContains": "success"
+      },
+      "note": {
+        "zh": "无需 key；默认建库文件在 {{workspace}}/mcp-station.sqlite，可在安装时改成别的路径。",
+        "en": "No key needed; the default database file is {{workspace}}/mcp-station.sqlite and can be changed at install time."
+      }
+    },
+    {
+      "id": "kubernetes",
+      "serverName": "kubernetes",
+      "displayName": {
+        "zh": "Kubernetes",
+        "en": "Kubernetes"
+      },
+      "tagline": {
+        "zh": "用 kubectl 读写集群资源、日志与 Helm",
+        "en": "kubectl resources, logs and Helm charts"
+      },
+      "description": {
+        "zh": "Kubernetes MCP server（mcp-server-kubernetes 4.2.1，23 个工具）。基于 kubectl 操作 Pod、Deployment、日志、exec、端口转发与 Helm；默认读取 ~/.kube/config。",
+        "en": "Kubernetes MCP server (mcp-server-kubernetes 4.2.1, 23 tools). Uses kubectl for pods, deployments, logs, exec, port-forward and Helm; reads ~/.kube/config by default."
+      },
+      "category": "dev",
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-server-kubernetes"
+      ],
+      "transport": "stdio",
+      "env": {
+        "npm_config_cache": "{{dshHome}}/mcp-station/npm-cache"
+      },
+      "requires": {
+        "node": true
+      },
+      "risk": {
+        "level": "high",
+        "reasons": [
+          {
+            "zh": "可创建/修改/删除集群资源",
+            "en": "Can create, change and delete cluster resources"
+          },
+          {
+            "zh": "可读取 Secret 与容器日志",
+            "en": "Can read secrets and container logs"
+          },
+          {
+            "zh": "误操作可能影响生产集群",
+            "en": "Mistakes can affect production clusters"
+          }
+        ]
+      },
+      "docs": "https://github.com/Flux159/mcp-server-kubernetes",
+      "tags": [
+        "kubernetes",
+        "kubectl",
+        "devops"
+      ],
+      "smoke": {
+        "tool": "ping"
+      },
+      "note": {
+        "zh": "需要本机安装 kubectl 并配置 kubeconfig；建议给只读或命名空间受限的 context。smoke 用 ping（不依赖集群）。",
+        "en": "Requires kubectl and a kubeconfig; prefer a read-only or namespace-scoped context. The smoke calls ping, which does not need a cluster."
+      }
+    },
+    {
+      "id": "sentry",
+      "serverName": "sentry",
+      "displayName": {
+        "zh": "Sentry",
+        "en": "Sentry"
+      },
+      "tagline": {
+        "zh": "查 issue、事件、trace 与告警",
+        "en": "Issues, events, traces and alerts"
+      },
+      "description": {
+        "zh": "Sentry 官方 MCP server（@sentry/mcp-server 0.49.0，73 个工具）。搜索与定位 issue、事件堆栈、trace、replay、日志，并管理告警与项目设置；支持自建 Sentry。",
+        "en": "Official Sentry MCP server (@sentry/mcp-server 0.49.0, 73 tools). Search issues, event stack traces, traces, replays and logs, and manage alerts and project settings; self-hosted Sentry is supported."
+      },
+      "category": "dev",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@sentry/mcp-server"
+      ],
+      "transport": "stdio",
+      "env": {
+        "SENTRY_AUTH_TOKEN": "env:SENTRY_AUTH_TOKEN",
+        "npm_config_cache": "{{dshHome}}/mcp-station/npm-cache"
+      },
+      "requires": {
+        "node": true,
+        "apiKey": true
+      },
+      "risk": {
+        "level": "medium",
+        "reasons": [
+          {
+            "zh": "可读取错误事件与用户上下文",
+            "en": "Can read error events and user context"
+          },
+          {
+            "zh": "部分工具可修改 issue 与告警",
+            "en": "Some tools can modify issues and alerts"
+          }
+        ]
+      },
+      "docs": "https://github.com/getsentry/sentry-mcp",
+      "tags": [
+        "sentry",
+        "monitoring",
+        "errors"
+      ],
+      "note": {
+        "zh": "需要 SENTRY_AUTH_TOKEN；自建 Sentry 另设 SENTRY_HOST 或 SENTRY_URL。旧的 SENTRY_ACCESS_TOKEN 仍兼容但会提示弃用。",
+        "en": "Needs SENTRY_AUTH_TOKEN; for self-hosted Sentry also set SENTRY_HOST or SENTRY_URL. The old SENTRY_ACCESS_TOKEN still works but is deprecated."
+      }
+    },
+    {
+      "id": "git",
+      "serverName": "git",
+      "displayName": {
+        "zh": "Git",
+        "en": "Git"
+      },
+      "tagline": {
+        "zh": "在本地仓库做 status/diff/log/commit",
+        "en": "Local status, diff, log and commit"
+      },
+      "description": {
+        "zh": "Git MCP server（@cyanheads/git-mcp-server 2.15.3，28 个工具）。覆盖 status、diff、log、blame、clone、commit、branch、merge、rebase、stash、tag 等本地 Git 操作。",
+        "en": "Git MCP server (@cyanheads/git-mcp-server 2.15.3, 28 tools). Covers status, diff, log, blame, clone, commit, branch, merge, rebase, stash and tag operations."
+      },
+      "category": "dev",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@cyanheads/git-mcp-server"
+      ],
+      "transport": "stdio",
+      "env": {
+        "GIT_BASE_DIR": "{{workspace}}",
+        "npm_config_cache": "{{dshHome}}/mcp-station/npm-cache"
+      },
+      "requires": {
+        "node": true
+      },
+      "risk": {
+        "level": "high",
+        "reasons": [
+          {
+            "zh": "可提交、推送、重置、删除分支",
+            "en": "Can commit, push, reset and delete branches"
+          },
+          {
+            "zh": "可能误改工作区文件与历史",
+            "en": "Can modify working tree files and history"
+          }
+        ]
+      },
+      "docs": "https://github.com/cyanheads/git-mcp-server",
+      "tags": [
+        "git",
+        "version-control"
+      ],
+      "note": {
+        "zh": "默认把操作限制在 GIT_BASE_DIR={{workspace}}；工具需要传入仓库/文件路径。因没有安全的无参调用，未配置 smoke。",
+        "en": "Operations are limited to GIT_BASE_DIR={{workspace}}; tools take repository/file paths. No safe argument-free call exists, so no smoke is configured."
+      }
+    },
+    {
+      "id": "mongodb",
+      "serverName": "mongodb",
+      "displayName": {
+        "zh": "MongoDB",
+        "en": "MongoDB"
+      },
+      "tagline": {
+        "zh": "查询与维护 MongoDB / Atlas 数据",
+        "en": "Query and manage MongoDB / Atlas data"
+      },
+      "description": {
+        "zh": "MongoDB 官方 MCP server（mongodb-mcp-server 3.2.2，27 个工具）。支持 aggregate、find、insert、索引与 schema 检查，也可连接 Atlas；连接串走环境变量。",
+        "en": "Official MongoDB MCP server (mongodb-mcp-server 3.2.2, 27 tools). Aggregate, find, insert, index and schema inspection, locally or on Atlas; the connection string comes from an environment variable."
+      },
+      "category": "data",
+      "command": "npx",
+      "args": [
+        "-y",
+        "mongodb-mcp-server"
+      ],
+      "transport": "stdio",
+      "env": {
+        "MDB_MCP_CONNECTION_STRING": "env:MDB_MCP_CONNECTION_STRING",
+        "npm_config_cache": "{{dshHome}}/mcp-station/npm-cache"
+      },
+      "requires": {
+        "node": true,
+        "apiKey": true
+      },
+      "risk": {
+        "level": "high",
+        "reasons": [
+          {
+            "zh": "可读写、删除数据库/集合",
+            "en": "Can read, write and drop databases/collections"
+          },
+          {
+            "zh": "连接串含数据库凭据",
+            "en": "The connection string carries database credentials"
+          }
+        ]
+      },
+      "docs": "https://github.com/mongodb-js/mongodb-mcp-server",
+      "tags": [
+        "mongodb",
+        "database",
+        "nosql"
+      ],
+      "note": {
+        "zh": "需要 MDB_MCP_CONNECTION_STRING（mongodb:// 或 mongodb+srv://）；建议用只读账号。首次运行会写 ~/.mongodb，可用 HOME 重定向。",
+        "en": "Needs MDB_MCP_CONNECTION_STRING (mongodb:// or mongodb+srv://); prefer a read-only user. The first run writes ~/.mongodb, which can be redirected with HOME."
+      }
+    },
+    {
+      "id": "supabase",
+      "serverName": "supabase",
+      "displayName": {
+        "zh": "Supabase",
+        "en": "Supabase"
+      },
+      "tagline": {
+        "zh": "项目、表、SQL、分支与 Edge Functions",
+        "en": "Projects, tables, SQL, branches and Edge Functions"
+      },
+      "description": {
+        "zh": "Supabase 官方 MCP server（@supabase/mcp-server-supabase 0.16.1，36 个工具）。管理组织/项目、查表结构、执行 SQL、管理迁移、分支与 Edge Functions。",
+        "en": "Official Supabase MCP server (@supabase/mcp-server-supabase 0.16.1, 36 tools). Manage orgs/projects, inspect tables, run SQL, manage migrations, branches and Edge Functions."
+      },
+      "category": "data",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase"
+      ],
+      "transport": "stdio",
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": "env:SUPABASE_ACCESS_TOKEN",
+        "npm_config_cache": "{{dshHome}}/mcp-station/npm-cache"
+      },
+      "requires": {
+        "node": true,
+        "apiKey": true
+      },
+      "risk": {
+        "level": "high",
+        "reasons": [
+          {
+            "zh": "可执行 SQL 与迁移，影响数据库",
+            "en": "Can run SQL and migrations that change the database"
+          },
+          {
+            "zh": "可管理项目与密钥类信息",
+            "en": "Can manage projects and key material"
+          }
+        ]
+      },
+      "docs": "https://github.com/supabase/mcp-server-supabase",
+      "tags": [
+        "supabase",
+        "database",
+        "postgres"
+      ],
+      "note": {
+        "zh": "需要 SUPABASE_ACCESS_TOKEN；可在 args 追加 --project-ref 限定单个项目，避免全组织权限。",
+        "en": "Needs SUPABASE_ACCESS_TOKEN; append --project-ref to scope the server to one project instead of the whole org."
+      }
+    },
+    {
+      "id": "excel",
+      "serverName": "excel",
+      "displayName": {
+        "zh": "Excel 文件",
+        "en": "Excel Files"
+      },
+      "tagline": {
+        "zh": "读写本地 xlsx 表格与单元格",
+        "en": "Read and write local xlsx sheets and cells"
+      },
+      "description": {
+        "zh": "Excel MCP server（@negokaz/excel-mcp-server 0.12.0，6 个工具）。读取/写入/复制 sheet、创建表格、格式化单元格范围；文件路径限制在 EXCEL_FILES_PATH 下。",
+        "en": "Excel MCP server (@negokaz/excel-mcp-server 0.12.0, 6 tools). Read/write/copy sheets, create tables and format ranges; file paths are restricted to EXCEL_FILES_PATH."
+      },
+      "category": "data",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@negokaz/excel-mcp-server"
+      ],
+      "transport": "stdio",
+      "env": {
+        "EXCEL_FILES_PATH": "{{workspace}}",
+        "npm_config_cache": "{{dshHome}}/mcp-station/npm-cache"
+      },
+      "requires": {
+        "node": true
+      },
+      "risk": {
+        "level": "medium",
+        "reasons": [
+          {
+            "zh": "可读写工作区内的 xlsx 文件",
+            "en": "Can read and write xlsx files in the workspace"
+          },
+          {
+            "zh": "写操作可能覆盖原有单元格内容",
+            "en": "Writes can overwrite existing cell content"
+          }
+        ]
+      },
+      "docs": "https://github.com/negokaz/excel-mcp-server",
+      "tags": [
+        "excel",
+        "xlsx",
+        "office"
+      ],
+      "note": {
+        "zh": "文件访问限制在 EXCEL_FILES_PATH={{workspace}}；工具必须传具体 xlsx 路径，没有安全的无参调用，故未配置 smoke。",
+        "en": "File access is limited to EXCEL_FILES_PATH={{workspace}}; tools need a concrete xlsx path, so no argument-free smoke exists."
+      }
+    },
+    {
+      "id": "brave-search",
+      "serverName": "brave-search",
+      "displayName": {
+        "zh": "Brave 搜索",
+        "en": "Brave Search"
+      },
+      "tagline": {
+        "zh": "网页、图片、视频、新闻与本地搜索",
+        "en": "Web, image, video, news and local search"
+      },
+      "description": {
+        "zh": "Brave 官方搜索 MCP server（@brave/brave-search-mcp-server 2.1.4，8 个工具）。提供 web/local/video/image/news 搜索、摘要与 LLM context，使用 BRAVE_API_KEY。",
+        "en": "Official Brave Search MCP server (@brave/brave-search-mcp-server 2.1.4, 8 tools): web/local/video/image/news search, summarizer and LLM context via BRAVE_API_KEY."
+      },
+      "category": "search",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@brave/brave-search-mcp-server"
+      ],
+      "transport": "stdio",
+      "env": {
+        "BRAVE_API_KEY": "env:BRAVE_API_KEY",
+        "npm_config_cache": "{{dshHome}}/mcp-station/npm-cache"
+      },
+      "requires": {
+        "node": true,
+        "apiKey": true
+      },
+      "risk": {
+        "level": "medium",
+        "reasons": [
+          {
+            "zh": "查询与结果会发送到 Brave 云端",
+            "en": "Queries and results are sent to Brave’s cloud"
+          },
+          {
+            "zh": "API key 有配额与计费",
+            "en": "The API key has quota and billing implications"
+          }
+        ]
+      },
+      "docs": "https://github.com/brave/brave-search-mcp-server",
+      "tags": [
+        "search",
+        "web",
+        "brave"
+      ],
+      "note": {
+        "zh": "需要 BRAVE_API_KEY（免费额度有限）；也支持 BRAVE_API_KEY_FILE 从文件读 key。",
+        "en": "Needs BRAVE_API_KEY (limited free tier); BRAVE_API_KEY_FILE is also supported."
+      }
+    },
+    {
+      "id": "exa",
+      "serverName": "exa",
+      "displayName": {
+        "zh": "Exa 搜索",
+        "en": "Exa Search"
+      },
+      "tagline": {
+        "zh": "语义搜索、网页取正文与深度研究",
+        "en": "Semantic search, page fetch and deep research"
+      },
+      "description": {
+        "zh": "Exa 官方 MCP server（exa-mcp-server 3.4.3，3 个工具）。web_search_exa 做语义搜索，web_fetch_exa 取网页正文，agent_run 跑多步研究；使用 EXA_API_KEY。",
+        "en": "Official Exa MCP server (exa-mcp-server 3.4.3, 3 tools): web_search_exa for semantic search, web_fetch_exa for page contents, agent_run for multi-step research; uses EXA_API_KEY."
+      },
+      "category": "search",
+      "command": "npx",
+      "args": [
+        "-y",
+        "exa-mcp-server"
+      ],
+      "transport": "stdio",
+      "env": {
+        "EXA_API_KEY": "env:EXA_API_KEY",
+        "npm_config_cache": "{{dshHome}}/mcp-station/npm-cache"
+      },
+      "requires": {
+        "node": true,
+        "apiKey": true
+      },
+      "risk": {
+        "level": "medium",
+        "reasons": [
+          {
+            "zh": "查询与网页内容会发送到 Exa 云端",
+            "en": "Queries and page contents are sent to Exa’s cloud"
+          },
+          {
+            "zh": "agent_run 会消耗较多额度",
+            "en": "agent_run consumes more credits"
+          }
+        ]
+      },
+      "docs": "https://github.com/exa-labs/exa-mcp-server",
+      "tags": [
+        "search",
+        "research",
+        "exa"
+      ],
+      "note": {
+        "zh": "需要 EXA_API_KEY；也可用远程 https://mcp.exa.ai/mcp（OAuth/远端托管）。",
+        "en": "Needs EXA_API_KEY; the hosted endpoint https://mcp.exa.ai/mcp is also available (OAuth)."
+      }
+    },
+    {
+      "id": "firecrawl",
+      "serverName": "firecrawl",
+      "displayName": {
+        "zh": "Firecrawl 抓取",
+        "en": "Firecrawl"
+      },
+      "tagline": {
+        "zh": "网页抓取、站内爬取与结构化提取",
+        "en": "Scrape, crawl and extract structured web data"
+      },
+      "description": {
+        "zh": "Firecrawl 官方 MCP server（firecrawl-mcp 3.38.0，30 个工具）。支持 scrape/map/crawl/search、批量抓取、监控、论文检索与结构化提取；使用 FIRECRAWL_API_KEY。",
+        "en": "Official Firecrawl MCP server (firecrawl-mcp 3.38.0, 30 tools): scrape/map/crawl/search, batch jobs, monitors, paper research and structured extraction; uses FIRECRAWL_API_KEY."
+      },
+      "category": "search",
+      "command": "npx",
+      "args": [
+        "-y",
+        "firecrawl-mcp"
+      ],
+      "transport": "stdio",
+      "env": {
+        "FIRECRAWL_API_KEY": "env:FIRECRAWL_API_KEY",
+        "npm_config_cache": "{{dshHome}}/mcp-station/npm-cache"
+      },
+      "requires": {
+        "node": true,
+        "apiKey": true
+      },
+      "risk": {
+        "level": "high",
+        "reasons": [
+          {
+            "zh": "可抓取任意公开网页，可能触及敏感/受限内容",
+            "en": "Can scrape arbitrary public pages, including sensitive or restricted content"
+          },
+          {
+            "zh": "抓取与 agent 任务会消耗额度",
+            "en": "Scraping and agent jobs consume credits"
+          }
+        ]
+      },
+      "docs": "https://github.com/firecrawl/firecrawl-mcp-server",
+      "tags": [
+        "search",
+        "scrape",
+        "crawl"
+      ],
+      "note": {
+        "zh": "需要 FIRECRAWL_API_KEY；默认 stdio，抓取量大时注意额度。",
+        "en": "Needs FIRECRAWL_API_KEY; stdio by default. Watch credits when crawling at scale."
+      }
+    },
+    {
+      "id": "duckduckgo",
+      "serverName": "duckduckgo",
+      "displayName": {
+        "zh": "DuckDuckGo 搜索",
+        "en": "DuckDuckGo Search"
+      },
+      "tagline": {
+        "zh": "无需 key 的网页搜索",
+        "en": "Web search without an API key"
+      },
+      "description": {
+        "zh": "DuckDuckGo MCP server（duckduckgo-mcp-server 0.1.2，1 个工具）。duckduckgo_web_search 提供无需 key 的网页搜索，适合轻量查询；DDG 有频率限制。",
+        "en": "DuckDuckGo MCP server (duckduckgo-mcp-server 0.1.2, 1 tool). duckduckgo_web_search gives key-free web search for light queries; DDG rate-limits aggressively."
+      },
+      "category": "search",
+      "command": "npx",
+      "args": [
+        "-y",
+        "duckduckgo-mcp-server"
+      ],
+      "transport": "stdio",
+      "env": {
+        "npm_config_cache": "{{dshHome}}/mcp-station/npm-cache"
+      },
+      "requires": {
+        "node": true
+      },
+      "risk": {
+        "level": "low",
+        "reasons": [
+          {
+            "zh": "查询会发送到 DuckDuckGo",
+            "en": "Queries are sent to DuckDuckGo"
+          },
+          {
+            "zh": "无 key，但可能被频率限制",
+            "en": "No key, but requests may be rate-limited"
+          }
+        ]
+      },
+      "docs": "https://github.com/zhsama/duckduckgo-mcp-server",
+      "tags": [
+        "search",
+        "web",
+        "duckduckgo"
+      ],
+      "smoke": {
+        "tool": "duckduckgo_web_search",
+        "args": {
+          "query": "model context protocol"
+        }
+      },
+      "note": {
+        "zh": "无需 key；DDG 可能返回“请求过快”的异常，属上游限流，不代表 server 坏了。",
+        "en": "No key; DDG may return a rate-limit anomaly, which comes from upstream and does not mean the server is broken."
+      }
+    },
+    {
+      "id": "apify",
+      "serverName": "apify",
+      "displayName": {
+        "zh": "Apify",
+        "en": "Apify"
+      },
+      "tagline": {
+        "zh": "调用 Apify Store 的抓取 Actor",
+        "en": "Run scraping Actors from Apify Store"
+      },
+      "description": {
+        "zh": "Apify 官方 MCP server（@apify/actors-mcp-server 0.21.4，13 个工具）。搜索 Apify Store、运行 Actor、读取数据集与 KV，覆盖数千个现成抓取器；需要 APIFY_TOKEN。",
+        "en": "Official Apify MCP server (@apify/actors-mcp-server 0.21.4, 13 tools). Search Apify Store, run Actors and read datasets/key-value stores across thousands of scrapers; requires APIFY_TOKEN."
+      },
+      "category": "search",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@apify/actors-mcp-server"
+      ],
+      "transport": "stdio",
+      "env": {
+        "APIFY_TOKEN": "env:APIFY_TOKEN",
+        "npm_config_cache": "{{dshHome}}/mcp-station/npm-cache"
+      },
+      "requires": {
+        "node": true,
+        "apiKey": true
+      },
+      "risk": {
+        "level": "high",
+        "reasons": [
+          {
+            "zh": "会运行第三方 Actor，抓取外部网页",
+            "en": "Runs third-party Actors that scrape external sites"
+          },
+          {
+            "zh": "Actor 运行会产生 Apify 费用",
+            "en": "Actor runs consume Apify credits"
+          }
+        ]
+      },
+      "docs": "https://github.com/apify/apify-mcp-server",
+      "tags": [
+        "apify",
+        "scraping",
+        "actors"
+      ],
+      "note": {
+        "zh": "需要 APIFY_TOKEN；可设置 APIFY_DEFAULT_ACTOR 等参数，运行前注意 Actor 计费。",
+        "en": "Needs APIFY_TOKEN; APIFY_DEFAULT_ACTOR and similar settings are available. Check Actor pricing before running."
       }
     }
   ]

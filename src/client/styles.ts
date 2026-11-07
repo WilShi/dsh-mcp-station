@@ -260,6 +260,20 @@ const EXTRA = `
 .ms_skipped{display:flex;flex-direction:column;gap:1px;border:1px solid color-mix(in srgb,var(--ms-warn) 32%,transparent);background:color-mix(in srgb,var(--ms-warn) 8%,transparent);border-radius:8px;padding:6px 9px;min-width:0}
 .ms_skippedName{font-size:12px;font-weight:500;color:var(--ms-text);word-break:break-all}
 .ms_skippedReason{font-size:11px;color:var(--ms-warn);word-break:break-word}
+.ms_select{font:inherit;font-size:12px;color:var(--ms-text);background:var(--ms-surface);border:1px solid var(--ms-border);border-radius:8px;padding:4px 8px;height:28px;max-width:100%}
+.ms_select:focus{outline:none;border-color:var(--ms-accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--ms-accent) 22%,transparent)}
+.ms_select:disabled{opacity:.55;cursor:default}
+.ms_selectCompact{font-size:11.5px;height:26px;padding:3px 6px}
+.ms_sourceList{display:flex;flex-direction:column;gap:0}
+.ms_sourceRow{display:flex;flex-direction:column;gap:3px;padding:9px 0;border-bottom:1px solid var(--ms-border)}
+.ms_sourceRow:last-child{border-bottom:0;padding-bottom:2px}
+.ms_sourceRow:first-child{padding-top:2px}
+.ms_sourceMain{display:flex;align-items:center;gap:7px;flex-wrap:wrap;min-width:0}
+.ms_sourceName{font-weight:600;font-size:12.5px;color:var(--ms-text);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ms_sourceActions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-left:auto}
+.ms_sourceUrl{font-size:11px;color:var(--ms-text3);word-break:break-all}
+.ms_sourceError{font-size:11px;color:var(--ms-error);word-break:break-word}
+.ms_marketMore{display:flex;flex-direction:column;align-items:center;gap:8px;padding:8px 0 14px}
 `
 
 const CSS = [TOKENS, LAYOUT, BUTTONS, BADGES, CARD, SERVERS, SETTINGS, STATES, DIALOG, TOAST, DRAWER, EXTRA, RESPONSIVE].join('\n')

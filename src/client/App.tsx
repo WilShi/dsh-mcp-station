@@ -8,15 +8,20 @@ import {
   type JSX,
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react'
-import type { CatalogFile, InstalledServer, ProbeResult } from '../shared/types.ts'
-import type { ImportPayload } from '../shared/types.ts'
-import { applyProbe, errorMessage, fetchCatalog, testServer } from './api.ts'
+import type {
+  CatalogFile,
+  DisplayLanguage,
+  ImportPayload,
+  InstalledServer,
+  ProbeResult,
+} from '../shared/types.ts'
+import { applyProbe, errorMessage, fetchCatalog, fetchSettings, saveSettings, testServer } from './api.ts'
 import { CustomServerDialog, type CustomSavedOptions } from './CustomServerDialog.tsx'
 import { ImportDialog } from './ImportDialog.tsx'
 import { InstalledTab } from './InstalledTab.tsx'
 import { SettingsTab } from './SettingsTab.tsx'
 import { StoreTab } from './StoreTab.tsx'
-import { localizedText, type StationLocaleKey } from './locales.ts'
+import { localizedText, setDisplayLanguage, type DisplayLanguageChoice, type StationLocaleKey } from './locales.ts'
 import { readAutoTest, writeAutoTest } from './prefs.ts'
 import { ErrorState, LoadingState, Spinner, ToastStack, type ToastItem, type TFunc } from './ui.tsx'
 
@@ -83,6 +88,7 @@ export function StationApp(props: StationAppProps): JSX.Element {
   const [reloadToken, setReloadToken] = useState(0)
   const [settingsToken, setSettingsToken] = useState(0)
   const [toasts, setToasts] = useState<readonly ToastItem[]>([])
+  const [displayLanguage, setDisplayLanguageState] = useState<DisplayLanguageChoice>('auto')
   const [autoTest, setAutoTestState] = useState<boolean>(() => readAutoTest())
   const [probing, setProbing] = useState<Record<string, boolean>>({})
   const [customDialog, setCustomDialog] = useState<CustomDialogState | null>(null)
@@ -117,6 +123,25 @@ export function StationApp(props: StationAppProps): JSX.Element {
     },
     [],
   )
+
+  // Display language: fetched once from the host, then applied globally so the
+  // preset text in every tab resolves against the chosen language.
+  useEffect(() => {
+    let active = true
+    void fetchSettings()
+      .then((payload) => {
+        if (!active) return
+        const next = payload.settings.displayLanguage
+        setDisplayLanguage(next)
+        setDisplayLanguageState(next)
+      })
+      .catch(() => {
+        // Older hosts have no /settings route; keep following the DSH locale.
+      })
+    return () => {
+      active = false
+    }
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -230,10 +255,40 @@ export function StationApp(props: StationAppProps): JSX.Element {
     [autoTest, probeServer, pushToast, t],
   )
 
+  const changeDisplayLanguage = useCallback(
+    (next: DisplayLanguageChoice): void => {
+      setDisplayLanguage(next)
+      setDisplayLanguageState(next)
+      const language: DisplayLanguage = next
+      void saveSettings({ displayLanguage: language }).catch(() => {
+        pushToast('error', t('languageUpdateFailed'))
+      })
+    },
+    [pushToast, t],
+  )
+
   const changeAutoTest = useCallback((value: boolean): void => {
     setAutoTestState(value)
     writeAutoTest(value)
   }, [])
+
+  const sourceLabelOf = useCallback(
+    (server: InstalledServer): string | undefined => {
+      const presets = catalogRef.current === null ? [] : catalogRef.current.presets
+      const preset = presets.find(
+        item =>
+          (item.id === server.presetId || item.serverName === server.serverName) &&
+          (server.sourceId === undefined || item.sourceId === server.sourceId),
+      )
+      const sourceId = server.sourceId ?? preset?.sourceId
+      if (sourceId === undefined) return undefined
+      if (sourceId === 'builtin') return t('sourceCurated')
+      if (sourceId === 'mcp-registry') return t('sourceRegistry')
+      const sourceName = server.sourceName ?? (preset?.sourceId === sourceId ? preset.sourceName : undefined)
+      return sourceName === undefined || sourceName === '' ? sourceId : sourceName
+    },
+    [t],
+  )
 
   const refresh = (): void => {
     if (tab === 'settings') setSettingsToken(value => value + 1)
@@ -330,10 +385,11 @@ export function StationApp(props: StationAppProps): JSX.Element {
         {!fatal && !ready ? <LoadingState label={t('loading')} /> : null}
         {ready && catalog !== null && tab === 'store' ? (
           <StoreTab
-            catalog={catalog}
             servers={servers}
             t={t}
             autoTest={autoTest}
+            displayLanguage={displayLanguage}
+            onDisplayLanguageChange={changeDisplayLanguage}
             onInstalled={handleInstalled}
             onOpenInstalled={() => {
               setTab('installed')
@@ -362,6 +418,7 @@ export function StationApp(props: StationAppProps): JSX.Element {
             onEditCustom={(server) => {
               setCustomDialog({ editing: server })
             }}
+            sourceLabelOf={sourceLabelOf}
           />
         ) : null}
         {ready && tab === 'settings' ? (
@@ -369,8 +426,13 @@ export function StationApp(props: StationAppProps): JSX.Element {
             t={t}
             onToast={pushToast}
             refreshToken={settingsToken}
+            displayLanguage={displayLanguage}
+            onDisplayLanguageChange={changeDisplayLanguage}
             autoTest={autoTest}
             onAutoTestChange={changeAutoTest}
+            onCatalogChanged={() => {
+              setReloadToken(value => value + 1)
+            }}
           />
         ) : null}
       </div>

@@ -106,3 +106,40 @@ Accepted JSON documents:
 
 Invalid, duplicate or already-installed names are skipped with a reason;
 valid entries are installed into the managed block.
+
+## 0.2.0 market sources
+
+The bundled catalog is one market source (`builtin`). Users can add remote
+JSON sources; the store merges all enabled sources and tags each preset with
+its source.
+
+| Method | Path | Body / Query | Data |
+| --- | --- | --- | --- |
+| GET | `/sources` | — | `{ sources: MarketSourceStatus[] }` |
+| POST | `/sources` | `{ url, name?, language?, headers?, enabled? }` | `{ source }` (new/updated sources are fetched eagerly) |
+| POST | `/sources/update` | `{ id, ... }` | `{ source }` |
+| DELETE | `/sources` | `?id=<sourceId>` | `{ removed: boolean }` |
+| POST | `/sources/refresh` | `{ id?: string }` | `{ sources }` |
+| GET | `/market` | `?search=&source=&cursor=&limit=` | `{ items, nextCursor?, sources, warnings }` |
+| GET | `/settings` | — | `{ settings: { displayLanguage, autoTest } }` |
+| POST | `/settings` | `{ displayLanguage?: "auto"\|"zh"\|"en", autoTest?: boolean }` | `{ settings }` |
+
+`GET /catalog` now returns presets merged from every enabled source. Each
+preset carries `sourceId` and `sourceName`. Install requests accept an
+optional `sourceId`; a preset id is only unique inside one source.
+
+### Custom source format
+
+Users add a URL that returns:
+
+```json
+{
+  "version": 1,
+  "name": "My MCP market",
+  "presets": [ { "id": "x", "serverName": "x", "displayName": { "zh": "…", "en": "…" }, "tagline": { … }, "description": { … }, "category": "dev", "transport": "stdio", "command": "npx", "args": ["-y", "pkg"], "risk": { "level": "low", "reasons": [] } } ]
+}
+```
+
+Presets use the same `CatalogPreset` schema as the bundled catalog. Remote
+sources are fetched host-side with a 15s timeout, a 5 MB cap and a 10 minute
+cache; a failed refresh keeps the last good snapshot.

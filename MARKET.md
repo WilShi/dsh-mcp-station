@@ -35,6 +35,15 @@ mcp, mcp-manager, mcp-store, playwright, browser, automation, devtools, one-clic
 
 ## 更新日志
 
+### 0.2.0
+
+- 市场源聚合：精选 + MCP 官方注册表 + 自定义源，搜索/筛选/加载更多/一键安装
+- 26 个热门精选预设
+- 自定义市场源（URL/语言/headers，启停/刷新/删除）
+- 显示语言选择（跟随 DSH/中文/English）
+- 修复版本号显示
+
+
 ### 0.1.1
 
 - 自定义 MCP 服务器（stdio/HTTP + headers）

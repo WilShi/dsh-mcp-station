@@ -38,9 +38,6 @@ export const zh = {
   catData: '数据',
   catMemory: '记忆',
   catProductivity: '效率',
-  storeSummary: '{shown} / {total} 个预设',
-  storeNoResults: '没有匹配的服务器',
-  storeNoResultsHint: '换个关键词或分类试试。',
   resetFilters: '清除筛选',
 
   transportStdio: 'stdio',
@@ -195,6 +192,60 @@ export const zh = {
   toastCustomSaved: '已保存 {name}',
   toastImported: '已导入 {count} 个服务器',
   toastImportedSkipped: '已导入 {count} 个，跳过 {skipped} 个',
+
+  languageLabel: '显示语言',
+  languageAuto: '跟随 DSH',
+  languageZh: '中文',
+  languageEn: 'English',
+  languageHint: '预设目录与卡片文本按该语言显示；缺失时回退到另一语言。',
+  languageUpdateFailed: '语言设置保存失败',
+  sourceTitle: '市场源',
+  sourceBuiltin: '内置',
+  sourceStatusOk: '正常',
+  sourceStatusUnknown: '未刷新',
+  sourceStatusError: '错误',
+  sourceStatusDisabled: '已停用',
+  sourceItems: '{count} 条',
+  sourceLastRefresh: '最近刷新：{time}',
+  sourceNeverRefreshed: '尚未刷新',
+  sourceRefresh: '刷新',
+  sourceRefreshAll: '全部刷新',
+  sourceRemove: '删除',
+  sourceRemoveConfirm: '确认删除该源？',
+  sourceRemoveHint: '删除后其预设会从商店移除，操作不可撤销。',
+  sourceAdd: '添加源',
+  sourceAddTitle: '添加市场源',
+  fieldSourceUrl: '源 URL',
+  fieldSourceName: '名称',
+  fieldSourceLanguage: '源语言',
+  fieldSourceHeaders: '请求头',
+  sourceUrlHint: '返回预设目录 JSON 的 http(s) 地址。',
+  sourceHeadersHint: '每行一个 KEY=VALUE；值可用 env:NAME 引用进程环境变量。',
+  sourceRequiredUrl: '请填写源 URL',
+  sourceAddSubmit: '添加',
+  sourceAddBusy: '正在添加…',
+  sourceAddFailed: '添加失败',
+  sourceAdded: '已添加源 {name}',
+  sourceRemoved: '已删除源 {name}',
+  sourceRefreshed: '已刷新 {count} 个源',
+  sourceRefreshFailed: '刷新失败：{message}',
+  sourceBuiltinHint: '内置源随插件发布，只读。',
+  sourceEmpty: '暂无市场源',
+  sourceLoadFailed: '市场源加载失败',
+  storeSourceAll: '全部来源',
+  storeSourceLabel: '来源',
+  storeSourceFilterAria: '按来源筛选',
+
+  sourceCurated: '精选',
+  sourceLanguageAuto: '自动',
+  sourceRegistry: '官方注册表',
+  marketLoadedCount: '已加载 {count} 个',
+  marketLoadMore: '加载更多',
+  marketLoadingMore: '加载中…',
+  marketLoadMoreFailed: '加载更多失败',
+  marketEmpty: '没有匹配的 MCP 服务器',
+  marketEmptyHint: '换个关键词或来源试试。',
+  marketLoadFailed: '市场加载失败',
 } as const
 
 export type StationLocaleKey = keyof typeof zh
@@ -226,9 +277,6 @@ export const en: Record<StationLocaleKey, string> = {
   catData: 'Data',
   catMemory: 'Memory',
   catProductivity: 'Productivity',
-  storeSummary: '{shown} of {total} presets',
-  storeNoResults: 'No matching servers',
-  storeNoResultsHint: 'Try another keyword or category.',
   resetFilters: 'Clear filters',
   transportStdio: 'stdio',
   transportHttp: 'HTTP',
@@ -378,6 +426,60 @@ export const en: Record<StationLocaleKey, string> = {
   toastCustomSaved: 'Saved {name}',
   toastImported: 'Imported {count} servers',
   toastImportedSkipped: 'Imported {count}, skipped {skipped}',
+
+  languageLabel: 'Display language',
+  languageAuto: 'Follow DSH',
+  languageZh: '中文',
+  languageEn: 'English',
+  languageHint: 'Preset catalogs and card text render in this language, falling back to the other one.',
+  languageUpdateFailed: 'Failed to save the language preference',
+  sourceTitle: 'Market sources',
+  sourceBuiltin: 'Built-in',
+  sourceStatusOk: 'OK',
+  sourceStatusUnknown: 'Not fetched',
+  sourceStatusError: 'Error',
+  sourceStatusDisabled: 'Disabled',
+  sourceItems: '{count} presets',
+  sourceLastRefresh: 'Last refresh: {time}',
+  sourceNeverRefreshed: 'Never refreshed',
+  sourceRefresh: 'Refresh',
+  sourceRefreshAll: 'Refresh all',
+  sourceRemove: 'Remove',
+  sourceRemoveConfirm: 'Remove this source?',
+  sourceRemoveHint: 'Its presets disappear from the store; this cannot be undone.',
+  sourceAdd: 'Add source',
+  sourceAddTitle: 'Add a market source',
+  fieldSourceUrl: 'Source URL',
+  fieldSourceName: 'Name',
+  fieldSourceLanguage: 'Source language',
+  fieldSourceHeaders: 'Headers',
+  sourceUrlHint: 'An http(s) URL returning a preset catalog JSON document.',
+  sourceHeadersHint: 'One KEY=VALUE per line; values may use env:NAME process variables.',
+  sourceRequiredUrl: 'Enter the source URL',
+  sourceAddSubmit: 'Add',
+  sourceAddBusy: 'Adding…',
+  sourceAddFailed: 'Add failed',
+  sourceAdded: 'Added source {name}',
+  sourceRemoved: 'Removed source {name}',
+  sourceRefreshed: 'Refreshed {count} sources',
+  sourceRefreshFailed: 'Refresh failed: {message}',
+  sourceBuiltinHint: 'Built-in source ships with the plugin; read-only.',
+  sourceEmpty: 'No market sources yet',
+  sourceLoadFailed: 'Failed to load market sources',
+  storeSourceAll: 'All sources',
+  storeSourceLabel: 'Source',
+  storeSourceFilterAria: 'Filter by source',
+
+  sourceCurated: 'Curated',
+  sourceLanguageAuto: 'Auto',
+  sourceRegistry: 'Official registry',
+  marketLoadedCount: 'Loaded {count}',
+  marketLoadMore: 'Load more',
+  marketLoadingMore: 'Loading…',
+  marketLoadMoreFailed: 'Failed to load more',
+  marketEmpty: 'No matching MCP servers',
+  marketEmptyHint: 'Try another keyword or source.',
+  marketLoadFailed: 'Failed to load the market',
 }
 
 /** Languages the shipped dictionaries cover. */
@@ -403,7 +505,24 @@ export const RISK_LABEL_KEYS: Record<RiskLevel, StationLocaleKey> = {
   high: 'riskHigh',
 }
 
+/** Language override chosen in the panel: follow DSH, or pin one language. */
+export type DisplayLanguageChoice = 'auto' | UiLocale
+
 let remembered: UiLocale = 'en'
+let displayOverride: DisplayLanguageChoice = 'auto'
+
+/**
+ * Apply the persisted display-language choice.
+ * @param value - 'auto', 'zh' or 'en' (anything else means auto).
+ */
+export function setDisplayLanguage(value: string): void {
+  displayOverride = value === 'zh' || value === 'en' ? value : 'auto'
+}
+
+/** Current display-language choice. */
+export function getDisplayLanguage(): DisplayLanguageChoice {
+  return displayOverride
+}
 
 /** Remember the active locale for non-DOM renders. */
 export function setUiLocale(active: string): void {
@@ -415,6 +534,7 @@ export function setUiLocale(active: string): void {
  * @returns the active UI language.
  */
 export function uiLocale(): UiLocale {
+  if (displayOverride !== 'auto') return displayOverride
   if (typeof document !== 'undefined') {
     const lang = document.documentElement.lang
     if (lang !== '') return lang.toLowerCase().startsWith('zh') ? 'zh' : 'en'

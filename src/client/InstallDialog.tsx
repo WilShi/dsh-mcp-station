@@ -15,6 +15,8 @@ export interface InstallDialogProps {
   t: TFunc
   /** Probe right after the row is written (0.1.1 install `test` flag). */
   autoTest: boolean
+  /** Market source the preset came from (0.2.0; optional for legacy hosts). */
+  sourceId?: string
   onClose: () => void
   onInstalled: (server: InstalledServer) => void
 }
@@ -106,7 +108,12 @@ export function InstallDialog(props: InstallDialogProps): JSX.Element {
       const value = (values[input.key] ?? '').trim()
       if (value !== '') payload[input.key] = value
     }
-    void installServer({ presetId: preset.id, values: payload, test: props.autoTest })
+    void installServer({
+      presetId: preset.id,
+      values: payload,
+      test: props.autoTest,
+      ...(props.sourceId === undefined ? {} : { sourceId: props.sourceId }),
+    })
       .then((result) => {
         setInstalled(result.server)
         setPhase('success')

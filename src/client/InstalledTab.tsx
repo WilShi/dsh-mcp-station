@@ -19,6 +19,8 @@ export interface InstalledTabProps {
   onEditCustom: (server: InstalledServer) => void
   /** Rows the panel is probing automatically after an install or import. */
   probing: Record<string, boolean>
+  /** Resolve the market source label of an installed row. */
+  sourceLabelOf?: (server: InstalledServer) => string | undefined
 }
 
 type BusyAction = 'test' | 'toggle' | 'remove'
@@ -183,6 +185,7 @@ export function InstalledTab(props: InstalledTabProps): JSX.Element {
           const action = busy[server.serverName]
           const external = server.origin === 'external'
           const custom = isCustomServer(server)
+          const sourceName = props.sourceLabelOf?.(server)
           const isProbing = props.probing[server.serverName] === true
           const note = notes[server.serverName]
           const isExpanded = expanded[server.serverName] === true
@@ -199,6 +202,11 @@ export function InstalledTab(props: InstalledTabProps): JSX.Element {
                   {name}
                 </span>
                 <Badge tone="plain">{server.transport === 'stdio' ? t('transportStdio') : t('transportHttp')}</Badge>
+                {sourceName === undefined ? null : (
+                  <Badge tone="plain" title={t('storeSourceLabel')}>
+                    {sourceName}
+                  </Badge>
+                )}
                 {custom ? <Badge tone="info">{t('customBadge')}</Badge> : null}
                 {external ? (
                   <Badge tone="warn" title={t('externalHint')}>
