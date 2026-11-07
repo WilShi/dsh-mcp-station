@@ -32,6 +32,14 @@ MCP Station 是 DeepSeek Harness（DSH）的 MCP 管理插件。它解决三个�
 - **安装后自动测试**：装完立即 initialize + tools/list，状态、工具数、错误直接显示；设置页可关闭。
 
 ## 功能
+## 界面截图
+
+| 市场 | 已安装 | 设置 |
+| --- | --- | --- |
+| <img src="https://raw.githubusercontent.com/WilShi/dsh-mcp-station/main/docs/screenshots/store.png" width="420" alt="聚合式 MCP 市场" /> | <img src="https://raw.githubusercontent.com/WilShi/dsh-mcp-station/main/docs/screenshots/installed.png" width="420" alt="已安装服务器" /> | <img src="https://raw.githubusercontent.com/WilShi/dsh-mcp-station/main/docs/screenshots/settings.png" width="420" alt="市场源与显示语言设置" /> |
+
+*市场：26 个精选预设 + 官方 MCP 注册表 + 自定义源；已安装：逐服务器测试与工具数；设置：显示语言与市场源管理。*
+
 
 - **精选应用商店**：浏览器、搜索、开发、数据、记忆、效率分类；中英文说明与风险标签。
 - **一键安装**：自动写入当前 profile 的 cordis.patch.yml 受管块，DSH HMR 热加载，几秒内工具可用。

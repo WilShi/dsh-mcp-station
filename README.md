@@ -32,6 +32,14 @@ MCP Station solves three concrete problems for DSH users:
 - **Auto-test after install**: initialize + tools/list immediately, showing status, tool count and errors; can be disabled in Settings.
 
 ## Features
+## Screenshots
+
+| Market | Installed | Settings |
+| --- | --- | --- |
+| <img src="https://raw.githubusercontent.com/WilShi/dsh-mcp-station/main/docs/screenshots/store.png" width="420" alt="Aggregated MCP market" /> | <img src="https://raw.githubusercontent.com/WilShi/dsh-mcp-station/main/docs/screenshots/installed.png" width="420" alt="Installed servers" /> | <img src="https://raw.githubusercontent.com/WilShi/dsh-mcp-station/main/docs/screenshots/settings.png" width="420" alt="Market sources and language settings" /> |
+
+*Market: 26 curated presets + the official MCP Registry + custom sources. Installed: per-server test and tool counts. Settings: display language and market sources.*
+
 
 - Curated store: browser, search, dev, data, memory and productivity categories, bilingual copy and risk labels.
 - One-click install: writes a managed block into the active profile cordis.patch.yml; DSH HMR loads it in seconds.
