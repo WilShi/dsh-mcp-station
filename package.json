@@ -44,7 +44,8 @@
     "build:host": "tsc -p tsconfig.build.json",
     "build:client": "node scripts/build-client.mjs && node scripts/verify-client.mjs",
     "typecheck": "tsc -p tsconfig.build.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepare": "npm run build"
   },
   "dependencies": {
     "@deepseek-ai/schemastery": "^3.18.5",
