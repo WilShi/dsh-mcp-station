@@ -2,6 +2,7 @@
 
 [![npm](https://img.shields.io/npm/v/dsh-mcp-station)](https://www.npmjs.com/package/dsh-mcp-station)
 [![license](https://img.shields.io/npm/l/dsh-mcp-station)](LICENSE)
+[![CI](https://github.com/WilShi/dsh-mcp-station/actions/workflows/ci.yml/badge.svg)](https://github.com/WilShi/dsh-mcp-station/actions/workflows/ci.yml)
 
 > DSH 的 MCP 应用商店：精选目录、一键安装、连通性检测、浏览器自动化预设。
 
@@ -12,6 +13,10 @@ MCP Station 是 DeepSeek Harness（DSH）的 MCP 管理插件。它解决三个�
 1. **找不到、配不对**：市面上的 MCP 管理器大多只做 CRUD，安装 Playwright 这类服务器仍要手写 JSON、自己踩浏览器版本坑。MCP Station 内置精选目录，一键写配置、连上、跑通冒烟测试。
 2. **市场太慢**：官方插件市场的索引走 jsDelivr，国内经常 15-25 秒甚至超时。MCP Station 的目录随插件打包，离线可用，不依赖任何远程索引。
 3. **装完不知道好不好**：每一项都能「测试连接」，列出工具数量、延迟和错误原因；Playwright 预设会自动检测本机 Chrome 并补上 --browser chrome。
+
+## 0.2.1 修复
+
+- 从官方 MCP 注册表安装条目时，按注册表原始 name 查找预设。
 
 ## 0.2.0 新增
 

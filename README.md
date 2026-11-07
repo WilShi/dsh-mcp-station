@@ -2,6 +2,7 @@
 
 [![npm](https://img.shields.io/npm/v/dsh-mcp-station)](https://www.npmjs.com/package/dsh-mcp-station)
 [![license](https://img.shields.io/npm/l/dsh-mcp-station)](LICENSE)
+[![CI](https://github.com/WilShi/dsh-mcp-station/actions/workflows/ci.yml/badge.svg)](https://github.com/WilShi/dsh-mcp-station/actions/workflows/ci.yml)
 
 > The MCP app store for DeepSeek Harness: curated catalog, one-click install, health checks and browser presets.
 
@@ -12,6 +13,10 @@ MCP Station solves three concrete problems for DSH users:
 1. **Find it and configure it**: most MCP managers are CRUD panels; installing Playwright still means hand-writing JSON and fighting Chromium revisions. MCP Station ships a curated catalog, writes the config, connects, and runs a smoke check.
 2. **Slow markets**: the default market index goes through jsDelivr and often takes 15-25s or times out in mainland China. The MCP Station catalog is bundled with the plugin and works offline.
 3. **Did it actually work?**: every entry can be tested (initialize + tools/list) with tool count, latency and error details. The Playwright preset detects local Chrome and adds --browser chrome for you.
+
+## What's new in 0.2.1
+
+- Fix install from the official MCP Registry: presets are resolved with the original registry name.
 
 ## What's new in 0.2.0
 
