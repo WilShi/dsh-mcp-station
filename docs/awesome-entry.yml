@@ -2,6 +2,6 @@ url: https://github.com/WilShi/dsh-mcp-station
 name: WilShi/dsh-mcp-station
 category: tools
 description:
-  en: Curated MCP app store with one-click install, connectivity checks, browser presets and safe managed-block config editing.
-  zh: 精选 MCP 应用商店：一键安装、连通性检测、浏览器预设与安全的受管块配置编辑。
+  en: Aggregated MCP market with 26 curated presets, the official MCP Registry, custom sources, search and one-click install.
+  zh: 聚合式 MCP 市场：26 个精选预设、官方注册表、自定义市场源、搜索与一键安装。
 icon: https://raw.githubusercontent.com/WilShi/dsh-mcp-station/main/docs/screenshots/store.png
