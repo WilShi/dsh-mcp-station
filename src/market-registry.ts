@@ -223,6 +223,8 @@ function presetIdFromName(value: string): string {
   return cleaned === '' ? 'mcp-server' : cleaned
 }
 
+const registryNameByPresetId = new Map<string, string>()
+
 function riskForRegistry(): CatalogPreset['risk'] {
   return {
     level: 'medium',
@@ -335,6 +337,7 @@ function mapServer(server: Record<string, unknown>, names: MappedNames): Catalog
     }
     if (repository !== undefined) preset.docs = repository
     preset.tags = ['mcp-registry']
+    registryNameByPresetId.set(preset.id, registryName)
     return preset
   }
 
@@ -367,6 +370,7 @@ function mapServer(server: Record<string, unknown>, names: MappedNames): Catalog
     if (remote.inputs.length > 0) preset.inputs = remote.inputs
     if (repository !== undefined) preset.docs = repository
     preset.tags = ['mcp-registry']
+    registryNameByPresetId.set(preset.id, registryName)
     return preset
   }
   return undefined
@@ -422,7 +426,8 @@ export class RegistryClient {
       const found = cached.page.items.find((item) => item.id === presetId)
       if (found !== undefined) return found
     }
-    const queries = [presetId.replace(/[-_.]+/g, ' '), presetId]
+    const knownName = registryNameByPresetId.get(presetId)
+    const queries = knownName === undefined ? [presetId.replace(/[-_.]+/g, ' '), presetId] : [knownName, presetId.replace(/[-_.]+/g, ' '), presetId]
     for (const search of queries) {
       if (search.trim() === '') continue
       const page = await this.fetchPage({ search, limit: REGISTRY_PAGE_LIMIT_MAX })

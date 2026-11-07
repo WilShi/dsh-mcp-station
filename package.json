@@ -1,6 +1,6 @@
 {
   "name": "dsh-mcp-station",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "MCP Station for DeepSeek Harness: a curated MCP app store with one-click install, browser automation presets, health checks and safe management. · DSH MCP 应用商店：精选 MCP 一键安装、浏览器预设、连通性检测与安全管理。",
   "publishConfig": {
     "access": "public"

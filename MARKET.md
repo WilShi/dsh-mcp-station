@@ -35,6 +35,10 @@ mcp, mcp-manager, mcp-store, playwright, browser, automation, devtools, one-clic
 
 ## 更新日志
 
+### 0.2.1
+
+- 修复从官方注册表安装条目时按注册表原名查找失败
+
 ### 0.2.0
 
 - 市场源聚合：精选 + MCP 官方注册表 + 自定义源，搜索/筛选/加载更多/一键安装

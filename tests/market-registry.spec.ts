@@ -199,6 +199,17 @@ describe('RegistryClient mapping', () => {
     expect(requests[0]!.version).toBe('latest')
   })
 
+  it('finds a mapped preset by sanitized id through the registry-name index', async () => {
+    const first = new RegistryClient({ baseUrl, now: () => 2000 })
+    const page = await first.fetchPage({ search: 'weather', limit: 10 })
+    const id = page.items[0]!.id
+    requests.length = 0
+    const second = new RegistryClient({ baseUrl, now: () => 2000 })
+    const found = await second.findPreset(id)
+    expect(found?.id).toBe(id)
+    expect(found?.serverName).toBe('weather')
+    expect(requests.some((request) => request.search === 'io.github.acme/weather')).toBe(true)
+  })
   it('caches identical queries for five minutes', async () => {
     let clock = 1000
     const client = new RegistryClient({ baseUrl, now: () => clock })
